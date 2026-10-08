@@ -1,0 +1,132 @@
+{
+  "version": "1.0.0",
+  "description": "Règles complexes de détection d'anomalies comportementales pour IDPS",
+  "rules": [
+    {
+      "id": "RULE-SSH-BRUTEFORCE-001",
+      "name": "Horizontal SSH Brute Force Attack",
+      "version": "1.0.0",
+      "severity": "critical",
+      "preconditions": {
+        "min_confidence": 0.75,
+        "min_evidence": 2,
+        "required_protocols": ["TCP"],
+        "excluded_ips": ["192.168.0.0/16", "10.0.0.0/8", "127.0.0.0/8"]
+      },
+      "criteria": [
+        {
+          "type": "port_scan",
+          "threshold": 15,
+          "window_seconds": 120,
+          "target_ports": [22, 2222],
+          "scan_type": "horizontal"
+        },
+        {
+          "type": "auth_failure",
+          "service": "ssh",
+          "threshold": 5,
+          "window_seconds": 300,
+          "username_variations": true
+        }
+      ],
+      "risk_score": 92,
+      "confidence_level": 0.85,
+      "evidence_collector": {
+        "collect_ports": true,
+        "collect_payloads": true,
+        "collect_timestamps": true,
+        "collect_usernames": true,
+        "max_evidence_items": 50
+      },
+      "response_action": {
+        "type": "block",
+        "duration_seconds": 3600,
+        "log_level": "critical",
+        "additional_actions": ["alert", "quarantine"]
+      },
+      "metadata": {
+        "attack_category": "brute_force",
+        "mitre_technique": "T1110.001",
+        "mitre_tactic": "Credential Access",
+        "description": "Détection d'une attaque de brute force SSH combinée à un scan horizontal de ports"
+      }
+    },
+    {
+      "id": "RULE-DDOS-SYN-002",
+      "name": "Distributed SYN Flood Attack",
+      "version": "1.0.0",
+      "severity": "critical",
+      "preconditions": {
+        "min_confidence": 0.80,
+        "min_evidence": 1
+      },
+      "criteria": [
+        {
+          "type": "syn_flood",
+          "threshold": 150,
+          "window_seconds": 1.0,
+          "destination_port": 80
+        }
+      ],
+      "risk_score": 95,
+      "confidence_level": 0.90,
+      "evidence_collector": {
+        "collect_ports": true,
+        "collect_timestamps": true,
+        "collect_source_ips": true
+      },
+      "response_action": {
+        "type": "block",
+        "duration_seconds": 7200,
+        "log_level": "critical",
+        "additional_actions": ["alert", "quarantine"]
+      },
+      "metadata": {
+        "attack_category": "ddos",
+        "mitre_technique": "T1498",
+        "mitre_tactic": "Impact",
+        "description": "Détection d'une attaque DDOS par inondation SYN"
+      }
+    },
+    {
+      "id": "RULE-RECONNAISSANCE-003",
+      "name": "Network Reconnaissance Scan",
+      "version": "1.0.0",
+      "severity": "high",
+      "preconditions": {
+        "min_confidence": 0.65,
+        "min_evidence": 1
+      },
+      "criteria": [
+        {
+          "type": "port_scan",
+          "threshold": 20,
+          "window_seconds": 300,
+          "scan_type": "vertical"
+        },
+        {
+          "type": "behavioral_anomaly",
+          "metric": "port_entropy",
+          "z_score_threshold": 2.5
+        }
+      ],
+      "risk_score": 75,
+      "confidence_level": 0.70,
+      "evidence_collector": {
+        "collect_ports": true,
+        "collect_timestamps": true
+      },
+      "response_action": {
+        "type": "alert",
+        "log_level": "warning",
+        "additional_actions": ["log"]
+      },
+      "metadata": {
+        "attack_category": "reconnaissance",
+        "mitre_technique": "T1595.001",
+        "mitre_tactic": "Reconnaissance",
+        "description": "Détection d'une activité de reconnaissance réseau"
+      }
+    }
+  ]
+}

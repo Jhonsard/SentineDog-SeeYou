@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ids_ips_mcp": {
+      "type": "sse",
+      "url": "https://mcp.ids-ips.ulpgl.local/mcp/sse",
+      "headers": {
+        "X-MCP-API-KEY": "<MCP_API_KEY_OU_CLE_DU_REGISTRE>"
+      }
+    }
+  }
+}

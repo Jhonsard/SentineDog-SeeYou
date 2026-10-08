@@ -1,0 +1,100 @@
+import asyncio
+from scapy.all import sniff, AsyncSniffer, Packet
+from scapy.layers.inet import IP
+from typing import Callable
+
+class PacketSniffer:
+    """
+    Gère la capture de paquets réseau de manière asynchrone en utilisant Scapy.
+    Les paquets capturés sont passés à une fonction de rappel pour traitement.
+    """
+    def __init__(self, interface: str, packet_callback: Callable[[Packet], None]):
+        """
+        Initialise le sniffer de paquets.
+
+        Args:
+            interface (str): L'interface réseau sur laquelle écouter (ex: 'eth0', 'wlan0').
+            packet_callback (Callable[[Packet], None]): Fonction de rappel à exécuter pour chaque paquet capturé.
+        """
+        self.interface = interface
+        self.packet_callback = packet_callback
+        self.sniffer = None
+        self._running = False
+        self.loop = None
+
+    async def start_sniffing(self):
+        """
+        Démarre la capture de paquets de manière asynchrone.
+        """
+        self.loop = asyncio.get_running_loop()
+
+        if self._running:
+            print("Le sniffer est déjà en cours d'exécution.")
+            return
+
+        print(f"Démarrage du sniffing sur l'interface {self.interface}...")
+        self._running = True
+        # Utilise AsyncSniffer pour une intégration non bloquante avec asyncio
+        self.sniffer = AsyncSniffer(iface=self.interface, prn=self._process_packet, store=0)
+        self.sniffer.start()
+        # Garde la tâche en vie tant que le sniffer est actif
+        while self._running:
+            await asyncio.sleep(1) # Vérifie périodiquement si le sniffer doit s'arrêter
+
+    async def stop_sniffing(self):
+        """
+        Arrête la capture de paquets.
+        """
+        if not self._running:
+            print("Le sniffer n'est pas en cours d'exécution.")
+            return
+
+        print("Arrêt du sniffing...")
+        self._running = False
+        if self.sniffer:
+            self.sniffer.stop()
+            self.sniffer.join() # Attend la fin du thread du sniffer
+            self.sniffer = None
+        print("Sniffing arrêté.")
+
+    def _process_packet(self, packet: Packet):
+        """
+        Méthode interne appelée par Scapy pour chaque paquet capturé.
+        Elle délègue le traitement au packet_callback fourni.
+
+        Args:
+            packet (Packet): Le paquet Scapy capturé.
+        """
+        #print(f"[CAPTURE] {packet.summary()}")
+
+        if packet.haslayer(IP):
+            print(
+            f"Source={packet['IP'].src} "
+            f"Destination={packet['IP'].dst}")
+        
+        if self.packet_callback:
+            # Exécute le callback dans un threadpool pour ne pas bloquer le sniffer
+            # ou utilise asyncio.create_task si le callback est un coroutine
+            # Pour l'instant, on suppose que le callback est synchrone et rapide
+            # ou qu'il gère son propre parallélisme/asynchronisme.
+            self.loop 
+
+# Exemple d'utilisation (pour les tests, ne sera pas exécuté directement dans le projet final)
+async def main():
+    from app.core.config import settings
+
+    def simple_packet_handler(packet: Packet):
+        if packet.haslayer('IP'):
+            print(f"Paquet IP détecté: {packet['IP'].src} -> {packet['IP'].dst}")
+
+    sniffer = PacketSniffer(interface=settings.NETWORK_INTERFACE, packet_callback=simple_packet_handler)
+    try:
+        await sniffer.start_sniffing()
+    except KeyboardInterrupt:
+        await sniffer.stop_sniffing(
+
+if __name__ == "__main__":
+    # Assurez-vous que l'interface réseau est correctement configurée dans .env ou config.py
+    # et que vous avez les permissions nécessaires (ex: sudo python3 your_script.py)
+    # asyncio.run(main())
+    pass

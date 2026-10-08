@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+.venv/
+.env
+.env.local
+
+# IDS/IPS local database (do not commit)
+*.db
+*.sqlite
+*.sqlite3
+ids_ips_local.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Legacy / duplicate code (purged, keep rule for safety)
+copyy/
