@@ -1,6 +1,6 @@
 // Configuration centralisée de l'application
 // Utiliser l'adresse IP du serveur pour l'accès externe
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://seeyou-87vn.onrender.com";
 export const API_VERSION = "v1";
 
 export const API_ENDPOINTS = {
