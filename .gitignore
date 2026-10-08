@@ -1,0 +1,26 @@
+# Secrets et donnees locales
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite3
+*.pem
+*.key
+*.crt
+*.p12
+
+# Configuration client MCP (contient la cle d'acces)
+app/mcp/mcp_config.json
+**/mcp_config.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Modeles et artefacts
+ml_model/models/*.keras
+*.log
