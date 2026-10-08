@@ -1,0 +1,274 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Inter-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Inter-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/Inter-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Inter-Bold.woff2') format('woff2');
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ============================================================
+     CYBEROBSERVE DS — Extended SOC design tokens
+     Deep charcoal/navy voids, layered surfaces, functional
+     alert colors and tech blues. Mirrors obsidian_sentinel spec.
+     ============================================================ */
+  --color-void: var(--void);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-edge: var(--edge);
+  --color-edge-strong: var(--edge-strong);
+  --color-critical: var(--critical);
+  --color-critical-soft: var(--critical-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-secure: var(--secure);
+  --color-secure-soft: var(--secure-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+}
+
+/* Alignement total sur l'identité visuelle de la maquette (Dark Mode natif) */
+:root, .dark {
+  --background: #090b0f;             /* Noir d'espace profond (fond d'écran) */
+  --foreground: #e1e2ec;             /* Texte principal clair */
+  --card: #0c0e12;                   /* Panneaux, tableaux et conteneurs */
+  --card-foreground: #e1e2ec;
+  --popover: #0c0e12;
+  --popover-foreground: #e1e2ec;
+  
+  --primary: #4d8eff;                /* Bleu électrique (signaux, liens, états stables) */
+  --primary-foreground: #002d6e;
+  --secondary: #10131a;              /* Sous-panneaux sombres */
+  --secondary-foreground: #c2c6d6;
+  
+  --muted: #1d2027;                  /* Éléments estompés */
+  --muted-foreground: #8c909f;
+  
+  --accent: #4d8eff;
+  --accent-foreground: #002d6e;
+  
+  --destructive: #ba1a1a;            /* Rouge profond (alertes critiques) */
+  --destructive-foreground: #ffffff;
+  
+  --border: #1d2027;                 /* Bordures discrètes des modules */
+  --input: #10131a;
+  --ring: #4d8eff;
+  
+  /* Palette Recharts / Graphes */
+  --chart-1: #4d8eff;                /* Flux normal (Bleu) */
+  --chart-2: #ffb4ab;                /* Pics d'attaques / Anomalies (Rouge) */
+  --chart-3: #f57f17;
+  --chart-4: #00acc1;
+  --chart-5: #8e24aa;
+  
+  /* Sidebar Layout */
+  --sidebar: #0c0e12;
+  --sidebar-foreground: #8c909f;
+  --sidebar-primary: #4d8eff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #10131a;
+  --sidebar-accent-foreground: #e1e2ec;
+  --sidebar-border: #1d2027;
+  --sidebar-ring: #4d8eff;
+
+  /* ---- CYBEROBSERVE DS : voids, surfaces, functional alerts, tech blues ---- */
+  --void: #051424;                  /* Deep charcoal/navy void (Level 0 canvas) */
+  --surface-1: #122131;             /* Level 1 primary content containers */
+  --surface-2: #1c2b3c;             /* Level 2 modals / lifted panels */
+  --surface-3: #273647;             /* Hover / active fill */
+  --edge: #273647;                  /* Subtle 1px structural borders */
+  --edge-strong: #424754;           /* Stronger 1px hairline borders */
+  --critical: #ff5a5a;              /* Vivid critical signal */
+  --critical-soft: #ffb4ab;         /* Critical text / chip fill */
+  --warning: #ffb361;               /* Vivid warning signal */
+  --warning-soft: #ffb786;          /* Warning text / chip fill */
+  --secure: #22c55e;                /* Secure / healthy / resolved */
+  --secure-soft: #4edea3;           /* Healthy text / chip fill */
+  --info: #4d8eff;                  /* Primary tech blue (stable-state) */
+  --info-soft: #adc6ff;             /* Soft tech blue (headings/accents) */
+
+  --radius: 4px;                     /* Angles droits typés militaro-industriel / SOC */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1280px;
+    }
+  }
+
+  /* Scrollbar personnalisé pour le dashboard */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #0c0e12;
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1d2027;
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #2a2d36;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: #0c0e12;
+  }
+}
+
+/* ============================================================
+   CYBEROBSERVE DS — utilities
+   Machine data uses JetBrains Mono (distinguishable 0/O, 1/l);
+   UI copy uses Inter. Glassmorphic headers, void grid texture
+   and tonal layering replace heavy shadows.
+   ============================================================ */
+@layer utilities {
+  .font-data-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+  .font-ui {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Glassmorphic panel header — subtle tonal lift, no heavy shadow */
+  .glass {
+    background: linear-gradient(180deg, rgba(28, 43, 60, 0.55) 0%, rgba(18, 33, 49, 0.35) 100%);
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+  }
+
+  /* Faint mission-control grid texture for the void canvas */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(66, 71, 84, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(66, 71, 84, 0.07) 1px, transparent 1px);
+    background-size: 36px 36px;
+    background-position: center top;
+  }
+
+  /* Thin hairline divider */
+  .hairline {
+    border-color: rgba(66, 71, 84, 0.6);
+  }
+}
