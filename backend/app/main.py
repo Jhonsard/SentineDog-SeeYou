@@ -10,11 +10,10 @@ from sqlalchemy import text
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 
-# Importations des composants d'infrastructure centralisés
+# Importations des composants d'infrastructure centralisés (Strictement conformes à votre version d'origine)
 from app.core.config import settings
 from app.db.models import Base, User
 from app.core.dependencies import get_db, SessionLocal, engine
-from app.core.security import get_password_hash
 from app.engine.sniffer import NetworkSniffer
 from app.engine.processor import PacketProcessor
 from app.engine.queue_manager import PacketQueueManager
@@ -44,14 +43,14 @@ async def app_lifespan(app: FastAPI):
         logger.critical("SECRET_KEY trop courte (<32 caracteres). Arret immediat.")
         raise RuntimeError("SECRET_KEY invalide: longueur minimum 32 caracteres.")
     
-    # 1. Sécurité : Création directe des tables PostgreSQL si manquantes
+    # 1. Sécurité : Création / vérification directe des tables PostgreSQL
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("Tables PostgreSQL initialisées/vérifiées avec succès (Base.metadata).")
     except Exception as db_err:
         logger.error(f"Erreur lors de la création directe des tables : {str(db_err)}")
 
-    # 2. Synchronisation Alembic (sans bloquer le démarrage si exception)
+    # 2. Synchronisation Alembic (sans bloquer le lancement en cas d'exception)
     try:
         from alembic.config import Config
         from alembic import command
@@ -62,12 +61,15 @@ async def app_lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Alembic n'a pas pu s'exécuter (fallback direct actif) : {str(e)}")
 
-    # 3. Création automatique de l'utilisateur Admin par défaut si absent
+    # 3. Création automatique de l'utilisateur Admin par défaut si absent (Hashage autonome)
     try:
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        
         db = SessionLocal()
         admin_user = db.query(User).filter(User.username == settings.INIT_ADMIN_USERNAME).first()
         if not admin_user:
-            hashed_pwd = get_password_hash(settings.INIT_ADMIN_PASSWORD)
+            hashed_pwd = pwd_context.hash(settings.INIT_ADMIN_PASSWORD)
             new_admin = User(
                 username=settings.INIT_ADMIN_USERNAME,
                 email=settings.INIT_ADMIN_EMAIL,
@@ -85,7 +87,9 @@ async def app_lifespan(app: FastAPI):
     packet_queue: PacketQueueManager = PacketQueueManager(maxsize=5000)
     app.state.packet_queue = packet_queue
 
-    # Pools de threads dédiés (DB / iptables / TensorFlow)
+    # Pools de threads dédiés (DB / iptables / TensorFlow) : ils sont libérés
+    # dans le finally du lifespan. L'app MCP montée ne recevant pas le scope
+    # lifespan, c'est le seul endroit fiable pour les arrêter.
     prewarm_threadpools()
 
     alert_manager = AlertManager(db_session_factory=SessionLocal)
@@ -175,7 +179,8 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         headers={"Retry-After": retry_after},
     )
 
-# Configuration CORS pour le Dashboard Front-End
+# Configuration de la sécurité des partages de ressources (CORS) pour le Dashboard Front-End
+# Injectée depuis la configuration centralisée, avec validation stricte en production
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOWED_ORIGINS,
@@ -188,7 +193,7 @@ app.add_middleware(
 if settings.RATE_LIMIT_ENABLED:
     app.add_middleware(SlowAPIMiddleware)
 
-# Branchement des routeurs d'API modulaires
+# Branchement des routeurs d'API modulaires (Routage explicite)
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(alerts_router, prefix="/api/v1")
 app.include_router(email_config_router, prefix="/api/v1")
@@ -234,10 +239,11 @@ async def health_check(db: Session = Depends(get_db)):
     }
 
 if __name__ == "__main__":
+    # Point d'entrée de démarrage manuel pour le développement (ex: python -m app.main)
     import uvicorn
     uvicorn.run(
         "app.main:app", 
         host=settings.API_HOST, 
         port=settings.API_PORT, 
-        reload=False
+        reload=False  # Rechargement désactivé pour ne pas perturber les threads Scapy
     )
