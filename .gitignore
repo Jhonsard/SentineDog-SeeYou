@@ -24,3 +24,36 @@ venv/
 # Modeles et artefacts
 ml_model/models/*.keras
 *.log
+
+# Dépendances (npm/yarn)
+/node_modules
+/.pnp
+.pnp.js
+
+# Fichiers de build
+/dist
+/build
+/.next
+/out
+
+# Variables d'environnement / Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Fichiers système et éditeurs
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
