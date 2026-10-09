@@ -111,7 +111,7 @@ export default function Assets() {
         } catch { /* departments are optional for display */ }
       }
     } catch {
-      toast.error("Backend Assets (nœuds) indisponible — données de démonstration.");
+      toast.error("Backend Assets (nœuds) indisponible pour le moment.");
     } finally {
       setLoading(false);
     }
