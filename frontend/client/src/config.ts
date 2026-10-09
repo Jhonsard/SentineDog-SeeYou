@@ -6,10 +6,8 @@ const rawBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
 export const API_BASE_URL = isDev && (!rawBaseUrl || rawBaseUrl === "") 
   ? ""  // URLs relatives pour passer par le proxy Vite (/api/v1/...)
-  : (rawBaseUrl || "http://localhost:8000");
+  : (rawBaseUrl || "https://seeyou-87vn.onrender.com");
 
-// Utiliser l'adresse IP du serveur pour l'accès externe
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://seeyou-87vn.onrender.com";
 export const API_VERSION = "v1";
 
 export const API_ENDPOINTS = {
@@ -65,8 +63,8 @@ export const API_ENDPOINTS = {
         return `ws://localhost:3000/api/${API_VERSION}/alerts/ws/alerts`;
       }
       // En prod ou sans proxy : se connecter directement au backend
-      const host = (rawBaseUrl || "http://localhost:8000").replace("http://", "").replace("https://", "");
-      return `ws://${host}/api/${API_VERSION}/alerts/ws/alerts`;
+      const host = (rawBaseUrl || "https://seeyou-87vn.onrender.com").replace("http://", "").replace("https://", "");
+      return `wss://${host}/api/${API_VERSION}/alerts/ws/alerts`;
     })(),
   },
-} as const;
+} as const; 
