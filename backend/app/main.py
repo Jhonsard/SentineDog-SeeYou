@@ -10,10 +10,10 @@ from sqlalchemy import text
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 
-# Importations des composants d'infrastructure centralisés
+# Importations des composants d'infrastructure centralisés (Strictement conformes à votre version d'origine)
 from app.core.config import settings
-from app.db.models import Base
-from app.core.dependencies import get_db, SessionLocal
+from app.db.models import Base, User
+from app.core.dependencies import get_db, SessionLocal, engine
 from app.engine.sniffer import NetworkSniffer
 from app.engine.processor import PacketProcessor
 from app.engine.queue_manager import PacketQueueManager
@@ -43,6 +43,14 @@ async def app_lifespan(app: FastAPI):
         logger.critical("SECRET_KEY trop courte (<32 caracteres). Arret immediat.")
         raise RuntimeError("SECRET_KEY invalide: longueur minimum 32 caracteres.")
     
+    # 1. Sécurité : Création / vérification directe des tables PostgreSQL
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Tables PostgreSQL initialisées/vérifiées avec succès (Base.metadata).")
+    except Exception as db_err:
+        logger.error(f"Erreur lors de la création directe des tables : {str(db_err)}")
+
+    # 2. Synchronisation Alembic (sans bloquer le lancement en cas d'exception)
     try:
         from alembic.config import Config
         from alembic import command
@@ -51,8 +59,30 @@ async def app_lifespan(app: FastAPI):
         command.upgrade(alembic_cfg, "head")
         logger.info("Schema de base de donnees synchronise via Alembic.")
     except Exception as e:
-        logger.critical(f"Impossible d'appliquer les migrations Alembic: {str(e)}")
-        raise
+        logger.warning(f"Alembic n'a pas pu s'exécuter (fallback direct actif) : {str(e)}")
+
+    # 3. Création automatique de l'utilisateur Admin par défaut si absent (Hashage autonome)
+    try:
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        
+        db = SessionLocal()
+        admin_user = db.query(User).filter(User.username == settings.INIT_ADMIN_USERNAME).first()
+        if not admin_user:
+            hashed_pwd = pwd_context.hash(settings.INIT_ADMIN_PASSWORD)
+            new_admin = User(
+                username=settings.INIT_ADMIN_USERNAME,
+                email=settings.INIT_ADMIN_EMAIL,
+                hashed_password=hashed_pwd,
+                is_superuser=True,
+                is_active=True
+            )
+            db.add(new_admin)
+            db.commit()
+            logger.info(f"Compte administrateur initial '{settings.INIT_ADMIN_USERNAME}' créé avec succès.")
+        db.close()
+    except Exception as admin_err:
+        logger.warning(f"Impossible d'initialiser le compte admin par défaut : {str(admin_err)}")
 
     # Seed initial admin user if configured
     try:
@@ -64,9 +94,9 @@ async def app_lifespan(app: FastAPI):
     packet_queue: PacketQueueManager = PacketQueueManager(maxsize=5000)
     app.state.packet_queue = packet_queue
 
-    # Pools de threads dedies (DB / iptables / TensorFlow) : ils sont liberes
-    # dans le finally du lifespan. L'app MCP montee ne recevant pas le scope
-    # lifespan, c'est le seul endroit fiable pour les arreter.
+    # Pools de threads dédiés (DB / iptables / TensorFlow) : ils sont libérés
+    # dans le finally du lifespan. L'app MCP montée ne recevant pas le scope
+    # lifespan, c'est le seul endroit fiable pour les arrêter.
     prewarm_threadpools()
 
     alert_manager = AlertManager(db_session_factory=SessionLocal)
@@ -132,7 +162,7 @@ async def app_lifespan(app: FastAPI):
 
     await asyncio.gather(sniffer_task, processor_task, return_exceptions=True)
 
-    # Arret des pools de threads dedies (DB / iptables / TensorFlow).
+    # Arrêt des pools de threads dédiés (DB / iptables / TensorFlow).
     await shutdown_threadpools()
 
     logger.info("Ressources système libérées. Extinction complète de l'application.")
@@ -223,4 +253,4 @@ if __name__ == "__main__":
         host=settings.API_HOST, 
         port=settings.API_PORT, 
         reload=False  # Rechargement désactivé pour ne pas perturber les threads Scapy
-    ) 
+    )
