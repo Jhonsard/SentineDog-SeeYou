@@ -12,8 +12,9 @@ from slowapi.errors import RateLimitExceeded
 
 # Importations des composants d'infrastructure centralisés
 from app.core.config import settings
-from app.db.models import Base
-from app.core.dependencies import get_db, SessionLocal
+from app.db.models import Base, User
+from app.core.dependencies import get_db, SessionLocal, engine
+from app.core.security import get_password_hash
 from app.engine.sniffer import NetworkSniffer
 from app.engine.processor import PacketProcessor
 from app.engine.queue_manager import PacketQueueManager
@@ -43,6 +44,14 @@ async def app_lifespan(app: FastAPI):
         logger.critical("SECRET_KEY trop courte (<32 caracteres). Arret immediat.")
         raise RuntimeError("SECRET_KEY invalide: longueur minimum 32 caracteres.")
     
+    # 1. Sécurité : Création directe des tables PostgreSQL si manquantes
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Tables PostgreSQL initialisées/vérifiées avec succès (Base.metadata).")
+    except Exception as db_err:
+        logger.error(f"Erreur lors de la création directe des tables : {str(db_err)}")
+
+    # 2. Synchronisation Alembic (sans bloquer le démarrage si exception)
     try:
         from alembic.config import Config
         from alembic import command
@@ -51,15 +60,32 @@ async def app_lifespan(app: FastAPI):
         command.upgrade(alembic_cfg, "head")
         logger.info("Schema de base de donnees synchronise via Alembic.")
     except Exception as e:
-        logger.critical(f"Impossible d'appliquer les migrations Alembic: {str(e)}")
-        raise
+        logger.warning(f"Alembic n'a pas pu s'exécuter (fallback direct actif) : {str(e)}")
+
+    # 3. Création automatique de l'utilisateur Admin par défaut si absent
+    try:
+        db = SessionLocal()
+        admin_user = db.query(User).filter(User.username == settings.INIT_ADMIN_USERNAME).first()
+        if not admin_user:
+            hashed_pwd = get_password_hash(settings.INIT_ADMIN_PASSWORD)
+            new_admin = User(
+                username=settings.INIT_ADMIN_USERNAME,
+                email=settings.INIT_ADMIN_EMAIL,
+                hashed_password=hashed_pwd,
+                is_superuser=True,
+                is_active=True
+            )
+            db.add(new_admin)
+            db.commit()
+            logger.info(f"Compte administrateur initial '{settings.INIT_ADMIN_USERNAME}' créé avec succès.")
+        db.close()
+    except Exception as admin_err:
+        logger.warning(f"Impossible d'initialiser le compte admin par défaut : {str(admin_err)}")
 
     packet_queue: PacketQueueManager = PacketQueueManager(maxsize=5000)
     app.state.packet_queue = packet_queue
 
-    # Pools de threads dedies (DB / iptables / TensorFlow) : ils sont liberes
-    # dans le finally du lifespan. L'app MCP montee ne recevant pas le scope
-    # lifespan, c'est le seul endroit fiable pour les arreter.
+    # Pools de threads dédiés (DB / iptables / TensorFlow)
     prewarm_threadpools()
 
     alert_manager = AlertManager(db_session_factory=SessionLocal)
@@ -125,7 +151,7 @@ async def app_lifespan(app: FastAPI):
 
     await asyncio.gather(sniffer_task, processor_task, return_exceptions=True)
 
-    # Arret des pools de threads dedies (DB / iptables / TensorFlow).
+    # Arrêt des pools de threads dédiés (DB / iptables / TensorFlow).
     await shutdown_threadpools()
 
     logger.info("Ressources système libérées. Extinction complète de l'application.")
@@ -149,8 +175,7 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         headers={"Retry-After": retry_after},
     )
 
-# Configuration de la sécurité des partages de ressources (CORS) pour le Dashboard Front-End
-# Injectée depuis la configuration centralisée, avec validation stricte en production
+# Configuration CORS pour le Dashboard Front-End
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOWED_ORIGINS,
@@ -163,7 +188,7 @@ app.add_middleware(
 if settings.RATE_LIMIT_ENABLED:
     app.add_middleware(SlowAPIMiddleware)
 
-# Branchement des routeurs d'API modulaires (Routage explicite)
+# Branchement des routeurs d'API modulaires
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(alerts_router, prefix="/api/v1")
 app.include_router(email_config_router, prefix="/api/v1")
@@ -209,11 +234,10 @@ async def health_check(db: Session = Depends(get_db)):
     }
 
 if __name__ == "__main__":
-    # Point d'entrée de démarrage manuel pour le développement (ex: python -m app.main)
     import uvicorn
     uvicorn.run(
         "app.main:app", 
         host=settings.API_HOST, 
         port=settings.API_PORT, 
-        reload=False  # Rechargement désactivé pour ne pas perturber les threads Scapy
-    ) 
+        reload=False
+    )
