@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Settings as SettingsIcon, Save, RefreshCw, Bell, Shield, Database, Network, User, Globe, Mail, CheckCircle, AlertCircle, Brain, Zap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAI } from "../contexts/AIContext";
 import { API_ENDPOINTS, API_BASE_URL } from "../config";
 
 export default function Settings() {
@@ -157,129 +158,71 @@ export default function Settings() {
   }, []);
 
   // ===== Agent IA (Intelligence Artificielle) =====
-  const [aiStatus, setAiStatus] = useState<any>({
-    is_trained: false,
-    model_version: null,
-    fallback_count: 0,
-    features_count: 0,
-    ai_mode_enabled: false,
-    rl_manual_mode: false,
-    rl_manual_mode_learning_enabled: false,
-  });
-  const [aiMode, setAiMode] = useState(false);
-  const [rlManual, setRlManual] = useState(false);
-  const [rlLearning, setRlLearning] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
+  const { 
+    status: aiStatus, 
+    aiModeEnabled, 
+    rlManualMode, 
+    rlManualLearningEnabled, 
+    isLoading: aiLoading, 
+    isBusy: aiBusy,
+    fetchStatus: fetchAIStatus,
+    toggleAiMode,
+    toggleRlManualMode,
+    toggleRlLearning,
+    reloadModel,
+    testDecision 
+  } = useAI();
+
   const [reloading, setReloading] = useState(false);
   const [testIp, setTestIp] = useState("");
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
 
-  const fetchAIStatus = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(API_ENDPOINTS.AI.STATUS, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        const d = await res.json();
-        setAiStatus(d);
-        setAiMode(!!d.ai_mode_enabled);
-        setRlManual(!!d.rl_manual_mode);
-        setRlLearning(!!d.rl_manual_mode_learning_enabled);
-      }
-    } catch (e) {
-      console.error("AI status:", e);
-    }
-  };
+  const handleToggleAiMode = useCallback((v: boolean) => {
+    toggleAiMode(v);
+  }, [toggleAiMode]);
 
-  const applyAIMode = async (patch: Record<string, boolean>) => {
-    setAiLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(API_ENDPOINTS.AI.MODE, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      if (res.ok) {
-        const d = await res.json();
-        setAiStatus(d);
-        setAiMode(!!d.ai_mode_enabled);
-        setRlManual(!!d.rl_manual_mode);
-        setRlLearning(!!d.rl_manual_mode_learning_enabled);
-        toast.success("Mode Agent IA mis à jour");
-      } else {
-        toast.error("Échec de la mise à jour du mode IA");
-      }
-    } catch {
-      toast.error("Backend IA indisponible");
-    } finally {
-      setAiLoading(false);
-    }
-  };
+  const handleToggleRlManual = useCallback((v: boolean) => {
+    toggleRlManualMode(v);
+  }, [toggleRlManualMode]);
 
-  const handleToggleAiMode = (v: boolean) => {
-    setAiMode(v);
-    applyAIMode({ ai_mode_enabled: v });
-  };
-  const handleToggleRlManual = (v: boolean) => {
-    setRlManual(v);
-    applyAIMode({ rl_manual_mode: v });
-  };
-  const handleToggleLearning = (v: boolean) => {
-    setRlLearning(v);
-    applyAIMode({ rl_manual_mode_learning_enabled: v });
-  };
+  const handleToggleLearning = useCallback((v: boolean) => {
+    toggleRlLearning(v);
+  }, [toggleRlLearning]);
 
-  const handleReloadModel = async () => {
+  const handleReloadModel = useCallback(async () => {
     setReloading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(API_ENDPOINTS.AI.RELOAD, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        toast.success("Modèle RL rechargé");
-        await fetchAIStatus();
-      } else {
-        toast.error("Échec du rechargement du modèle");
-      }
+      await reloadModel();
+      toast.success("Modèle RL rechargé");
     } catch {
-      toast.error("Backend IA indisponible");
+      toast.error("Échec du rechargement du modèle");
     } finally {
       setReloading(false);
     }
-  };
+  }, [reloadModel]);
 
-  const handleTestDecision = async () => {
+  const handleTestDecision = useCallback(async () => {
     if (!testIp) return;
     setTesting(true);
     setTestResult(null);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(API_ENDPOINTS.AI.DECIDE, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ ip: testIp, context: {} }),
-      });
-      if (res.ok) {
-        setTestResult(await res.json());
+      const result = await testDecision(testIp);
+      if (result) {
+        setTestResult(result);
       } else {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err.detail || "Décision impossible");
+        toast.error("Décision impossible");
       }
     } catch {
       toast.error("Backend IA indisponible");
     } finally {
       setTesting(false);
     }
-  };
+  }, [testIp, testDecision]);
 
   useEffect(() => {
     fetchAIStatus();
-  }, []);
+  }, [fetchAIStatus]);
 
   return (
     <div className="container mx-auto px-4 py-8 font-sans-serif h-screen overflow-hidden flex flex-col">
@@ -641,8 +584,8 @@ export default function Settings() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-[11px]">
               <span className="text-zinc-400">Modèle RL</span>
-              <span className={aiStatus.is_trained ? "text-emerald-400" : "text-amber-400"}>
-                {aiStatus.is_trained ? `Chargé (${aiStatus.model_version ?? "?"})` : "Non entraîné — fallback manuel"}
+              <span className={aiStatus?.is_trained ? "text-emerald-400" : "text-amber-400"}>
+                {aiStatus?.is_trained ? `Chargé (${aiStatus?.model_version ?? "?"})` : "Non entraîné — fallback manuel"}
               </span>
             </div>
 
@@ -651,7 +594,7 @@ export default function Settings() {
                 <Label className="text-xs text-zinc-400">Mode Agent IA</Label>
                 <p className="text-[10px] text-zinc-600">Active les décisions automatiques du modèle RL</p>
               </div>
-              <Switch checked={aiMode} onCheckedChange={handleToggleAiMode} disabled={aiLoading} />
+              <Switch checked={aiModeEnabled} onCheckedChange={handleToggleAiMode} disabled={aiLoading || aiBusy} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -659,7 +602,7 @@ export default function Settings() {
                 <Label className="text-xs text-zinc-400">Mode manuel RL</Label>
                 <p className="text-[10px] text-zinc-600">Délègue l'action finale à un opérateur humain</p>
               </div>
-              <Switch checked={rlManual} onCheckedChange={handleToggleRlManual} disabled={aiLoading} />
+              <Switch checked={rlManualMode} onCheckedChange={handleToggleRlManual} disabled={aiLoading || aiBusy} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -667,7 +610,7 @@ export default function Settings() {
                 <Label className="text-xs text-zinc-400">Apprentissage en mode manuel</Label>
                 <p className="text-[10px] text-zinc-600">Enregistre le feedback pour ré-entraîner le modèle</p>
               </div>
-              <Switch checked={rlLearning} onCheckedChange={handleToggleLearning} disabled={aiLoading} />
+              <Switch checked={rlManualLearningEnabled} onCheckedChange={handleToggleLearning} disabled={aiLoading || aiBusy} />
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">

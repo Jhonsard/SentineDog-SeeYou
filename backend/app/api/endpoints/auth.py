@@ -8,8 +8,9 @@ from app.core.config import settings
 from app.core.jwt_manager import jwt_key_manager
 from app.core.rate_limiter import limiter
 from app.db.models import User as UserModel
-from app.api.schemas import Token, User
+from app.api.schemas import Token, User, UserCreate
 from app.core.dependencies import get_db, get_current_active_user
+from app.core.auth_utils import get_password_hash
 from app.services.threat_detector import threat_detector
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
@@ -82,7 +83,53 @@ async def login_for_access_token(
     return {
         "access_token": access_token, 
         "token_type": "bearer"
-    }
+        }
+
+
+@router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED, summary="Inscription d'un nouvel utilisateur")
+@limiter.limit(f"{settings.RATE_LIMIT_AUTH_REQUESTS}/{settings.RATE_LIMIT_AUTH_WINDOW_SECONDS}seconds")
+async def register_user(
+    request: Request,
+    user_data: UserCreate,
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Crée un nouvel compte utilisateur.
+    Vérifie l'unicité du username et de l'email avant création.
+    """
+    # Vérifier si le username existe déjà
+    existing_user = db.query(UserModel).filter(UserModel.username == user_data.username).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ce nom d'utilisateur existe déjà."
+        )
+    
+    # Vérifier si l'email existe déjà
+    existing_email = db.query(UserModel).filter(UserModel.email == user_data.email).first()
+    if existing_email:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cet email est déjà enregistré."
+        )
+    
+    # Hasher le mot de passe
+    hashed_password = get_password_hash(user_data.password)
+    
+    # Créer l'utilisateur
+    new_user = UserModel(
+        username=user_data.username,
+        email=user_data.email,
+        hashed_password=hashed_password,
+        role=user_data.role,
+        is_active=True
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return new_user
 
 
 @router.get("/me", response_model=User, summary="Profil de l'utilisateur authentifié (Identity Monitoring)")

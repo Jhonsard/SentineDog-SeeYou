@@ -1,12 +1,20 @@
 // Configuration centralisée de l'application
-// Utiliser l'adresse IP du serveur pour l'accès externe
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+// En développement avec proxy Vite : utiliser URLs relatives (VITE_API_BASE_URL="")
+// En production : définir VITE_API_BASE_URL=https://votre-backend.onrender.com
+const isDev = import.meta.env.DEV;
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+export const API_BASE_URL = isDev && (!rawBaseUrl || rawBaseUrl === "") 
+  ? ""  // URLs relatives pour passer par le proxy Vite (/api/v1/...)
+  : (rawBaseUrl || "http://localhost:8000");
+
 export const API_VERSION = "v1";
 
 export const API_ENDPOINTS = {
   BASE: `${API_BASE_URL}/api/${API_VERSION}`,
   AUTH: {
     TOKEN: `${API_BASE_URL}/api/${API_VERSION}/auth/token`,
+    REGISTER: `${API_BASE_URL}/api/${API_VERSION}/auth/register`,
     ME: `${API_BASE_URL}/api/${API_VERSION}/auth/me`,
   },
   ALERTS: {
@@ -49,6 +57,14 @@ export const API_ENDPOINTS = {
     CURRENT: `${API_BASE_URL}/api/${API_VERSION}/keys/current`,
   },
   WEBSOCKET: {
-    ALERTS: `ws://${API_BASE_URL.replace("http://", "").replace("https://", "")}/api/${API_VERSION}/alerts/ws/alerts`,
+    ALERTS: (() => {
+      if (isDev && (!rawBaseUrl || rawBaseUrl === "")) {
+        // En dev avec proxy Vite : se connecter au serveur Vite (ws://localhost:3000)
+        return `ws://localhost:3000/api/${API_VERSION}/alerts/ws/alerts`;
+      }
+      // En prod ou sans proxy : se connecter directement au backend
+      const host = (rawBaseUrl || "http://localhost:8000").replace("http://", "").replace("https://", "");
+      return `ws://${host}/api/${API_VERSION}/alerts/ws/alerts`;
+    })(),
   },
 } as const;

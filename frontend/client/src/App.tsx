@@ -9,6 +9,7 @@ import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AIProvider } from "./contexts/AIContext";
 import { SidebarLayout } from "./components/SidebarLayout"; 
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -41,10 +42,12 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <AIProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </AIProvider>
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

@@ -54,6 +54,13 @@ async def app_lifespan(app: FastAPI):
         logger.critical(f"Impossible d'appliquer les migrations Alembic: {str(e)}")
         raise
 
+    # Seed initial admin user if configured
+    try:
+        from scripts.seed_admin import create_admin_user
+        create_admin_user()
+    except Exception as e:
+        logger.warning(f"Seed admin non executé: {e}")
+
     packet_queue: PacketQueueManager = PacketQueueManager(maxsize=5000)
     app.state.packet_queue = packet_queue
 

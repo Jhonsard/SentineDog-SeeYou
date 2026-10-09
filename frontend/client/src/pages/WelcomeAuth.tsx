@@ -62,24 +62,55 @@ export default function WelcomeAuth() {
     setIsLoading(true);
 
     try {
-      const formDataEncoded = new URLSearchParams();
-      formDataEncoded.append("username", formData.username);
-      formDataEncoded.append("password", formData.password);
+      if (isLogin) {
+        // Mode connexion - utilise form data (OAuth2)
+        const formDataEncoded = new URLSearchParams();
+        formDataEncoded.append("username", formData.username);
+        formDataEncoded.append("password", formData.password);
 
-      const response = await fetch(API_ENDPOINTS.AUTH.TOKEN, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formDataEncoded.toString(),
-      });
+        const response = await fetch(API_ENDPOINTS.AUTH.TOKEN, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formDataEncoded.toString(),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        login(data.access_token);
-        toast.success("Welcome back! You are now connected.");
-        setLocation("/");
+        if (response.ok) {
+          const data = await response.json();
+          login(data.access_token);
+          toast.success("Welcome back! You are now connected.");
+          setLocation("/");
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.detail || "Authentication failed");
+        }
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.detail || "Authentication failed");
+        // Mode inscription - utilise JSON
+        const response = await fetch(API_ENDPOINTS.AUTH.REGISTER, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
+            role: "user"
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          toast.success("Account created successfully! Please sign in.");
+          setIsLogin(true);
+          setFormData({
+            username: "",
+            password: "",
+            confirmPassword: "",
+            email: ""
+          });
+          setErrors({});
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.detail || "Registration failed");
+        }
       }
     } catch (error) {
       toast.error("Connection error. Please try again.");

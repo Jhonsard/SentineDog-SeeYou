@@ -9,7 +9,7 @@ from app.db.models import Alert, User
 from app.engine.firewall import firewall_manager
 from app.services.websocket_manager import websocket_manager
 from app.services.threat_detector import threat_detector
-from app.core.auth_utils import authenticate_websocket, get_user_from_ws_token
+from app.core.auth_utils import authenticate_websocket, get_user_from_ws_token, validate_websocket_origin
 from app.core.jwt_manager import jwt_key_manager
 
 router = APIRouter(prefix="/alerts", tags=["Alertes & Pare-feu"])
@@ -174,6 +174,11 @@ async def unblock_ip_address(
 
 @router.websocket("/ws/alerts")
 async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
+    # Valider l'origine CORS pour WebSocket
+    if not validate_websocket_origin(websocket):
+        await websocket.close(code=1008, reason="Origine non autorisée")
+        return
+    
     await websocket.accept()
     active_secret = jwt_key_manager.get_active_key(db)
     token_data = await authenticate_websocket(websocket, secret_key=active_secret)
@@ -191,7 +196,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_text("pong")
-                 
+             
     except WebSocketDisconnect:
         await websocket_manager.disconnect(websocket)
 

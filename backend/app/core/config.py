@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     MCP_THREADPOOL_RL_WORKERS: int = Field(default=2, ge=1, le=16, description="Workers pour inférence RL (TensorFlow/Keras).")
 
     CORS_ENVIRONMENT: str = Field(default="dev", pattern="^(dev|test|prod)$")
-    CORS_ALLOWED_ORIGINS: list[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"])
+    CORS_ALLOWED_ORIGINS: list[str] = Field(default_factory=lambda: ["http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173","http://localhost:8080","http://127.0.0.1:8000"])
     CORS_ALLOW_CREDENTIALS: bool = Field(default=True)
     CORS_ALLOWED_METHODS: list[str] = Field(default_factory=lambda: ["*"])
     CORS_ALLOWED_HEADERS: list[str] = Field(default_factory=lambda: ["*"])

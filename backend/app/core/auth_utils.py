@@ -11,8 +11,46 @@ import bcrypt  # Utilisation directe du module natif sans passlib
 from fastapi import WebSocket
 from app.core.config import settings
 from app.api.schemas import TokenData
-
 logger = logging.getLogger("ids_ips.auth_utils")
+
+
+def validate_websocket_origin(websocket: WebSocket) -> bool:
+    """
+    Valide l'en-tête Origin pour les connexions WebSocket.
+    Retourne True si l'origine est autorisée, False sinon.
+    En mode dev, autorise localhost:3000, localhost:5173, localhost:8080, 127.0.0.1 variants.
+    """
+    # Récupérer l'en-tête Origin
+    origin_header = None
+    for header_name, header_value in websocket.headers.items():
+        if header_name.lower() == "origin":
+            origin_header = header_value
+            break
+    
+    # Si pas d'Origin (ex: client non-navigateur), autoriser
+    if not origin_header:
+        return True
+    
+    # En mode dev, autoriser les origines locales communes
+    if settings.CORS_ENVIRONMENT == "dev":
+        allowed_dev_origins = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+        ]
+        if origin_header in allowed_dev_origins:
+            return True
+    
+    # En prod, vérifier contre CORS_ALLOWED_ORIGINS
+    if origin_header in settings.CORS_ALLOWED_ORIGINS:
+        return True
+    
+    logger.warning(f"WebSocket origin non autorisée: {origin_header}")
+    return False
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """

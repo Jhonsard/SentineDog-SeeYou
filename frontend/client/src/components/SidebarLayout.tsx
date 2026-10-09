@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LayoutDashboard, ShieldX, Terminal, RefreshCw, Activity, ShieldAlert, Gavel, Zap, Shield, Globe, Network, Server, Settings as SettingsIcon, Menu, X, User as UserIcon, Server as ServerIcon, Brain, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import MetricCardsGrid from './MetricCardsGrid';
@@ -16,10 +16,21 @@ import Settings from '../pages/Settings';
 import UserProfile from '../pages/UserProfile';
 import NodesManagement from '../pages/NodesManagement';
 import { useAuth } from '../contexts/AuthContext';
+import { useAI } from '../contexts/AIContext';
 import { API_ENDPOINTS } from '../config';
 
 export function SidebarLayout() {
   const { token } = useAuth();
+  const { 
+    aiModeEnabled, 
+    aiTrained: contextAiTrained, 
+    isBusy: aiBusy, 
+    isLoading: aiLoading,
+    fetchStatus: loadAiStatus, 
+    toggleAiMode 
+  } = useAI();
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
   
   // --- ÉTATS GLOBALISÉS ET SYNCHRONISÉS ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -30,9 +41,6 @@ export function SidebarLayout() {
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [isMonitoring, setIsMonitoring] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [aiMode, setAiMode] = useState<boolean>(false);
-  const [aiTrained, setAiTrained] = useState<boolean>(false);
-  const [aiBusy, setAiBusy] = useState<boolean>(false);
   const [stats, setStats] = useState<SnifferStats>({
     pps: 42500,
     network_load: '780 Mbps',
@@ -116,8 +124,8 @@ export function SidebarLayout() {
       wsRef.current = new WebSocket(API_ENDPOINTS.WEBSOCKET.ALERTS);
 
       wsRef.current.onopen = () => {
-        if (token) {
-          wsRef.current?.send(JSON.stringify({ token }));
+        if (tokenRef.current) {
+          wsRef.current?.send(JSON.stringify({ token: tokenRef.current }));
         }
         setWsConnected(true);
         toast.success("Canal de streaming réseau établi avec le sniffer.");
@@ -185,7 +193,7 @@ export function SidebarLayout() {
       clearTimeout(reconnectTimeout);
       clearInterval(heartbeatInterval);
     };
-  }, [isMonitoring]);
+  }, [isMonitoring, token]);
 
   // --- ACTIONNEUR AUTOMATISÉ IPS MÉMOÏSÉ ---
   const handleValidateBlock = useCallback(async (alertId: number, sourceIp: string) => {
@@ -272,46 +280,12 @@ export function SidebarLayout() {
     }
   };
 
-  // Statut live de l'Agent IA + bascule rapide depuis la barre du haut.
-  const loadAiStatus = async () => {
-    try {
-      const res = await fetch(API_ENDPOINTS.AI.STATUS, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        const d = await res.json();
-        setAiMode(!!d.ai_mode_enabled);
-        setAiTrained(!!d.is_trained);
-      }
-    } catch {
-      /* backend IA indisponible — on garde l'état par défaut */
-    }
-  };
-
-  const toggleAiMode = async () => {
-    setAiBusy(true);
-    try {
-      const res = await fetch(API_ENDPOINTS.AI.MODE, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ ai_mode_enabled: !aiMode }),
-      });
-      if (res.ok) {
-        const d = await res.json();
-        setAiMode(!!d.ai_mode_enabled);
-        setAiTrained(!!d.is_trained);
-      }
-    } catch {
-      /* silence */
-    } finally {
-      setAiBusy(false);
-    }
-  };
-
+  // Chargement initial du statut IA au montage et quand le token change
   useEffect(() => {
-    loadAiStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+    if (token) {
+      loadAiStatus();
+    }
+  }, [loadAiStatus, token]);
 
   return (
     <div className="flex min-h-screen bg-void text-[#e1e2ec] antialiased grid-bg">
@@ -462,17 +436,17 @@ export function SidebarLayout() {
             <div>PPS: <span className="text-info-soft font-bold">{stats.pps.toLocaleString()}</span></div>
             <div>CHARGE: <span className="text-info-soft font-bold">{stats.network_load}</span></div>
 
-            {/* AGENT IA — statut live + bascule rapide */}
+{/* AGENT IA — statut live + bascule rapide */}
             <button
-              onClick={toggleAiMode}
-              disabled={aiBusy}
+              onClick={() => toggleAiMode()}
+              disabled={aiBusy || aiLoading}
               title="Activer / désactiver le mode Agent IA"
               className="flex items-center gap-2 rounded-md border border-edge bg-surface-2/60 px-2.5 py-1.5 font-data-mono text-[11px] text-[#c2c6d6] transition-colors hover:border-info/40 hover:text-info-soft disabled:opacity-60"
             >
               <Brain className="h-3.5 w-3.5 text-purple-400" />
               Agent IA
-              <span className={`h-2 w-2 rounded-full ${aiMode ? (aiTrained ? "bg-secure animate-pulse" : "bg-warning") : "bg-zinc-600"}`} />
-              <span className={aiMode ? "text-secure-soft font-bold" : "text-[#8c909f]"}>{aiMode ? "ACTIF" : "INACTIF"}</span>
+              <span className={`h-2 w-2 rounded-full ${aiModeEnabled ? (contextAiTrained ? "bg-secure animate-pulse" : "bg-warning") : "bg-zinc-600"}`} />
+              <span className={aiModeEnabled ? "text-secure-soft font-bold" : "text-[#8c909f]"}>{aiModeEnabled ? "ACTIF" : "INACTIF"}</span>
               {aiBusy && <Loader2 className="h-3 w-3 animate-spin" />}
             </button>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -44,6 +44,8 @@ export const TrafficAttackChart: React.FC = () => {
   const [data, setData] = useState<AttackAverageData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { token } = useAuth();
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
 
   // Mock faithful to the ULPGL SOC history when the backend is unreachable.
   const MOCK_HISTORY: AttackAverageData[] = [
@@ -91,8 +93,8 @@ export const TrafficAttackChart: React.FC = () => {
     let normalDrift = 50;
     const ws = new WebSocket(API_ENDPOINTS.WEBSOCKET.ALERTS);
     ws.onopen = () => {
-      if (token) {
-        ws.send(JSON.stringify({ token }));
+      if (tokenRef.current) {
+        ws.send(JSON.stringify({ token: tokenRef.current }));
       }
     };
     ws.onmessage = (event) => {
