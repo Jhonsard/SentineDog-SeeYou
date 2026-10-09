@@ -1,5 +1,4 @@
 // Configuration centralisée de l'application
-<<<<<<< HEAD
 // En développement avec proxy Vite : utiliser URLs relatives (VITE_API_BASE_URL="")
 // En production : définir VITE_API_BASE_URL=https://votre-backend.onrender.com
 const isDev = import.meta.env.DEV;
@@ -9,10 +8,8 @@ export const API_BASE_URL = isDev && (!rawBaseUrl || rawBaseUrl === "")
   ? ""  // URLs relatives pour passer par le proxy Vite (/api/v1/...)
   : (rawBaseUrl || "http://localhost:8000");
 
-=======
 // Utiliser l'adresse IP du serveur pour l'accès externe
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://seeyou-87vn.onrender.com";
->>>>>>> 34dc314b41bee23dd58d2367ceb2f95bf8104889
 export const API_VERSION = "v1";
 
 export const API_ENDPOINTS = {
