@@ -124,7 +124,7 @@ export default function NetworkLogs() {
         setLogs(mapped);
       }
     } catch {
-      toast.error("Backend Network Logs indisponible — données de démonstration.");
+      toast.error("Backend Network Logs indisponible pour le moment.");
     } finally {
       setLoading(false);
     }
