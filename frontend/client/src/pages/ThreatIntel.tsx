@@ -92,7 +92,7 @@ export default function ThreatIntel() {
         setThreats(mapped);
       }
     } catch {
-      toast.error("Backend Threat Intelligence indisponible — données de démonstration.");
+      toast.error("Backend Threat indisponible pour le moment.");
     } finally {
       setLoading(false);
     }
@@ -129,8 +129,8 @@ export default function ThreatIntel() {
         <div className="flex items-center gap-3">
           <ShieldAlert className="h-6 w-6 text-red-500" />
           <div>
-            <h1 className="text-xl font-bold text-white">Threat Intelligence</h1>
-            <p className="text-xs text-zinc-500">Menaces cybernétiques mondiales et indicateurs de compromission</p>
+            <h1 className="text-xl font-bold text-white">Threat</h1>
+            <p className="text-xs text-zinc-500">Menaces cybernétiques mondiales</p>
           </div>
         </div>
         <div className="flex gap-2">
