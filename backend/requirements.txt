@@ -1,9 +1,6 @@
 fastapi==0.115.0
-<<<<<<< HEAD
 uvicorn[standard]>=0.31.6
-=======
 uvicorn[standard]>=0.31.1
->>>>>>> 34dc314b41bee23dd58d2367ceb2f95bf8104889
 scapy==2.5.0
 sqlalchemy==2.0.35
 python-jose[cryptography]==3.3.0
