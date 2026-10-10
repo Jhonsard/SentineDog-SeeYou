@@ -24,68 +24,7 @@ interface NetworkLog {
 export default function NetworkLogs() {
   const [, setLocation] = useLocation();
   const { token } = useAuth();
-  const [logs, setLogs] = useState<NetworkLog[]>([
-    {
-      id: 1,
-      timestamp: "2024-01-22 14:32:15",
-      source_ip: "192.168.1.100",
-      destination_ip: "10.0.0.50",
-      source_port: 54321,
-      destination_port: 443,
-      protocol: "TCP",
-      action: "allowed",
-      bytes: 1524,
-      duration: 0.5
-    },
-    {
-      id: 2,
-      timestamp: "2024-01-22 14:32:12",
-      source_ip: "203.0.113.45",
-      destination_ip: "192.168.1.1",
-      source_port: 12345,
-      destination_port: 22,
-      protocol: "TCP",
-      action: "blocked",
-      bytes: 0,
-      duration: 0
-    },
-    {
-      id: 3,
-      timestamp: "2024-01-22 14:32:10",
-      source_ip: "192.168.1.50",
-      destination_ip: "8.8.8.8",
-      source_port: 53214,
-      destination_port: 53,
-      protocol: "UDP",
-      action: "allowed",
-      bytes: 512,
-      duration: 0.1
-    },
-    {
-      id: 4,
-      timestamp: "2024-01-22 14:32:08",
-      source_ip: "198.51.100.23",
-      destination_ip: "192.168.1.100",
-      source_port: 44444,
-      destination_port: 80,
-      protocol: "TCP",
-      action: "dropped",
-      bytes: 256,
-      duration: 0.2
-    },
-    {
-      id: 5,
-      timestamp: "2024-01-22 14:32:05",
-      source_ip: "192.168.1.200",
-      destination_ip: "10.0.0.100",
-      source_port: 49152,
-      destination_port: 3306,
-      protocol: "TCP",
-      action: "allowed",
-      bytes: 2048,
-      duration: 1.2
-    }
-  ]);
+  const [logs, setLogs] = useState<NetworkLog[]>([]);
 
   const [loading, setLoading] = useState(true);
 

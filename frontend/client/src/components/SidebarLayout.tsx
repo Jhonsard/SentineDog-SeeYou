@@ -7,8 +7,8 @@ import { AlertFeed } from './AlertFeed';
 import { EngineHealthPanel } from './dashboard/EngineHealthPanel';
 import { NetworkTrafficView } from './dashboard/NetworkTrafficView';
 import { EndpointSecurityView } from './dashboard/EndpointSecurityView';
-import { Alert, AttackAverageData, SnifferStats } from './types';
-import BannedHosts from './BannedHosts';
+import { Alert, SnifferStats } from './types';
+import BannedHosts from '../pages/BannedHosts';
 import ThreatIntel from '../pages/ThreatIntel';
 import NetworkLogs from '../pages/NetworkLogs';
 import Assets from '../pages/Assets';
@@ -38,18 +38,19 @@ export function SidebarLayout() {
   const [dashboardView, setDashboardView] = useState<"overview" | "network" | "endpoint">("overview");
   const [currentTab, setCurrentTab] = useState<"dashboard" | "blacklist" | "threat-intel" | "network-logs" | "assets" | "settings" | "profile" | "nodes">("dashboard");
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [history, setHistory] = useState<AttackAverageData[]>([]);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [isMonitoring, setIsMonitoring] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [engineBusy, setEngineBusy] = useState<boolean>(false);
+  const [engineInfo, setEngineInfo] = useState<{ interface: string; autostart: boolean } | null>(null);
   const [stats, setStats] = useState<SnifferStats>({
-    pps: 42500,
-    network_load: '780 Mbps',
+    pps: 0,
+    network_load: "0 Mbps",
     checksum_errors: 0,
-    total_alerts: 2842,
-    active_critical: 14,
-    blocked_hosts: 156,
-    avg_events_min: 12.8
+    total_alerts: 0,
+    active_critical: 0,
+    blocked_hosts: 0,
+    avg_events_min: 0
   });
   const [showBanModal, setShowBanModal] = useState<{ id: number; ip: string; reason: string } | null>(null);
 
@@ -69,7 +70,18 @@ export function SidebarLayout() {
 
         if (response.ok) {
           const data = await response.json();
-          setAlerts(data);
+          const rows = Array.isArray(data) ? data : [];
+          setAlerts(rows);
+          const critical = rows.filter(
+            (a: any) => a.severity === "critique" || a.severity === "tres_critique"
+          ).length;
+          const blocked = rows.filter((a: any) => a.is_blocked).length;
+          setStats((prev) => ({
+            ...prev,
+            total_alerts: rows.length,
+            active_critical: critical,
+            blocked_hosts: blocked,
+          }));
         } else {
           console.error("Échec de synchronisation avec l'historique permanent de la BDD.");
         }
@@ -80,38 +92,6 @@ export function SidebarLayout() {
 
     fetchAlertsHistory();
   }, [token]);
-
-  // --- RÉCUPÉRATION DE L'HISTORIQUE DES GRAPHES ---
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await fetch(API_ENDPOINTS.ALERTS.STATS_HISTORY);
-        if (res.ok) {
-          const data = await res.json();
-          // Adapter le format de données si nécessaire
-          const adaptedData = data.map((item: any) => ({
-            time: item.time,
-            normal_count: 0, // À adapter selon le backend
-            attack_count: item["Moyenne d'Attaques"] || 0
-          }));
-          setHistory(adaptedData);
-        } else {
-          // Injection de données mockées fidèles à l'historique du SOC de l'ULPGL
-          setHistory([
-            { time: "09:00", normal_count: 45, attack_count: 5 },
-            { time: "09:05", normal_count: 55, attack_count: 12 },
-            { time: "09:10", normal_count: 48, attack_count: 8 },
-            { time: "09:15", normal_count: 62, attack_count: 22 },
-            { time: "09:20", normal_count: 50, attack_count: 15 },
-          ]);
-        }
-      } catch (e) {
-        console.error("Failed to fetch history", e);
-      }
-    };
-
-    fetchHistory();
-  }, []);
 
   // --- PIPELINE DE STREAMING TEMPS RÉEL OPTIMISÉ ---
   useEffect(() => {
@@ -280,6 +260,79 @@ export function SidebarLayout() {
       setTimeout(() => setRefreshing(false), 400);
     }
   };
+
+  // --- PILOTAGE RÉEL DU MOTEUR DE CAPTURE (SNIFFER) ---
+  const fetchEngineStatus = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(API_ENDPOINTS.ENGINE.STATUS, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsMonitoring(Boolean(data.sniffer_running));
+        setEngineInfo({ interface: data.interface, autostart: Boolean(data.autostart) });
+        setStats((prev) => ({
+          ...prev,
+          network_load: `${data.queue?.utilization_pct ?? 0}% file`,
+          checksum_errors: data.queue?.dropped_packets ?? 0,
+        }));
+      }
+    } catch (e) {
+      console.error("Engine status fetch failed:", e);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (token) fetchEngineStatus();
+  }, [token, fetchEngineStatus]);
+
+  const handleStartEngine = useCallback(async () => {
+    if (!token) {
+      toast.error("Session administrateur requise pour armer le moteur.");
+      return;
+    }
+    setEngineBusy(true);
+    try {
+      const res = await fetch(API_ENDPOINTS.ENGINE.SNIFFER_START, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setIsMonitoring(Boolean(data.sniffer_running));
+        toast.success("Moteur de capture armé : le sniffer analyse le trafic.");
+      } else {
+        toast.error(data.detail || "Impossible d'armer le moteur de capture.");
+      }
+    } catch {
+      toast.error("Contrôleur de capture injoignable.");
+    } finally {
+      setEngineBusy(false);
+    }
+  }, [token]);
+
+  const handleStopEngine = useCallback(async () => {
+    if (!token) return;
+    setEngineBusy(true);
+    try {
+      const res = await fetch(API_ENDPOINTS.ENGINE.SNIFFER_STOP, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setIsMonitoring(Boolean(data.sniffer_running));
+        toast.info("Moteur de capture désarmé.");
+      } else {
+        toast.error(data.detail || "Impossible de désarmer le moteur de capture.");
+      }
+    } catch {
+      toast.error("Contrôleur de capture injoignable.");
+    } finally {
+      setEngineBusy(false);
+    }
+  }, [token]);
 
   // Chargement initial du statut IA au montage et quand le token change
   useEffect(() => {
@@ -486,15 +539,15 @@ export function SidebarLayout() {
             {/* MOTEUR D'INTERCEPTION */}
             <div className="flex gap-2 sm:gap-3 sm:ml-4">
               <button 
-                onClick={() => setIsMonitoring(true)} 
-                disabled={isMonitoring} 
+                onClick={handleStartEngine} 
+                disabled={isMonitoring || engineBusy} 
                 className="bg-secure hover:bg-secure/85 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-xs font-sans font-medium px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5"
               >
                 <Zap className="h-3.5 w-3.5" /> Start Sniffer
               </button>
               <button 
-                onClick={() => setIsMonitoring(false)} 
-                disabled={!isMonitoring} 
+                onClick={handleStopEngine} 
+                disabled={!isMonitoring || engineBusy} 
                 className="bg-critical hover:bg-critical/85 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-xs font-sans font-medium px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5"
               >
                 <Shield className="h-3.5 w-3.5" /> Stop Engine
@@ -569,7 +622,7 @@ export function SidebarLayout() {
                     <TrafficAttackChart />
                   </div>
                   <div className="xl:col-span-1 flex flex-col">
-                    <EngineHealthPanel stats={stats} health={94} />
+                    <EngineHealthPanel stats={stats} running={isMonitoring} health={isMonitoring ? 100 : 0} />
                   </div>
                 </div>
 

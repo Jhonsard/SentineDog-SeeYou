@@ -19,8 +19,8 @@ export interface KpiCardProps {
   icon: React.ReactNode;
   accent?: KpiAccent;
   delta?: KpiDelta;
-  /** 24h trend series for the embedded sparkline. */
-  spark: number[];
+  /** Série réelle pour la mini-courbe. Omise si aucune donnée fiable n'est disponible. */
+  spark?: number[];
   footnote?: string;
   menuItems?: WidgetMenuItem[];
 }
@@ -92,9 +92,11 @@ export function KpiCard({
         )}
       </div>
 
-      <div className="flex items-end justify-between gap-3">
-        <Sparkline data={spark} color={`var(--${accent === "info" ? "info" : accent === "critical" ? "critical" : accent === "warning" ? "warning" : "secure"})`} width={150} height={34} className="w-full" />
-      </div>
+      {spark && spark.length > 1 && (
+        <div className="flex items-end justify-between gap-3">
+          <Sparkline data={spark} color={`var(--${accent === "info" ? "info" : accent === "critical" ? "critical" : accent === "warning" ? "warning" : "secure"})`} width={150} height={34} className="w-full" />
+        </div>
+      )}
 
       {footnote && (
         <p className={cn("font-data-sans-serif text-[10px] leading-tight", accentText[accent])}>{footnote}</p>

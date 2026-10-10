@@ -13,12 +13,11 @@ export default function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState({
-    username: "admin",
-    email: "admin@ulpgl.ac.cd",
-    role: "Administrator",
-    department: "Security Operations Center",
-    lastLogin: new Date().toLocaleString('fr-FR'),
-    accountCreated: "2024-01-15"
+    username: "—",
+    email: "—",
+    role: "—",
+    isActive: false,
+    lastLogin: "—",
   });
 
   const loadProfile = async () => {
@@ -33,18 +32,18 @@ export default function UserProfile() {
       });
       if (res.ok) {
         const u = await res.json();
-        setProfileData((prev) => ({
-          ...prev,
+        setProfileData({
           username: u.username,
           email: u.email,
           role: u.role === "admin" ? "Administrator" : u.role,
-          accountCreated: u.accountCreated ?? prev.accountCreated,
-        }));
+          isActive: Boolean(u.is_active),
+          lastLogin: new Date().toLocaleString("fr-FR"),
+        });
       } else {
-        toast.error("Session expirée — affichage du profil local.");
+        toast.error("Session expirée. Veuillez vous reconnecter.");
       }
     } catch {
-      toast.error("Backend Identity Monitoring indisponible — profil local.");
+      toast.error("Backend Identity Monitoring indisponible.");
     } finally {
       setLoading(false);
     }
@@ -57,7 +56,7 @@ export default function UserProfile() {
 
   const handleSave = () => {
     setIsEditing(false);
-    toast.success("Profil mis à jour localement");
+    toast.info("Modification non enregistrée : aucun endpoint serveur de mise à jour de profil.");
   };
 
   const handleLogout = () => {
@@ -131,13 +130,6 @@ export default function UserProfile() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
-                <Shield className="h-4 w-4 text-zinc-500" />
-                <div>
-                  <p className="text-[10px] text-zinc-500">Department</p>
-                  <p className="text-sm text-white font-medium">{profileData.department}</p>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -163,20 +155,13 @@ export default function UserProfile() {
                 <p className="text-sm text-white font-medium">{profileData.lastLogin}</p>
               </div>
               
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <User className="h-4 w-4 text-purple-500" />
-                  <p className="text-[10px] text-zinc-500">Account Created</p>
-                </div>
-                <p className="text-sm text-white font-medium">{profileData.accountCreated}</p>
-              </div>
               
               <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-emerald-500" />
                   <p className="text-[10px] text-zinc-500">Account Status</p>
                 </div>
-                <p className="text-sm text-emerald-500 font-medium">Active</p>
+                <p className={`text-sm font-medium ${profileData.isActive ? "text-emerald-500" : "text-red-500"}`}>{profileData.isActive ? "Active" : "Inactive"}</p>
               </div>
             </div>
 
@@ -216,14 +201,6 @@ export default function UserProfile() {
                       />
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label className="text-xs text-zinc-400">Department</Label>
-                      <Input
-                        value={profileData.department}
-                        onChange={(e) => setProfileData({...profileData, department: e.target.value})}
-                        className="bg-zinc-900 border-zinc-800 text-white text-sm"
-                      />
-                    </div>
                   </div>
                   
                   <Button size="sm" className="gap-2" onClick={handleSave}>

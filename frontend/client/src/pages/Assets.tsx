@@ -19,58 +19,7 @@ interface Asset {
 }
 
 export default function Assets() {
-  const [assets, setAssets] = useState<Asset[]>([
-    {
-      id: "AST-001",
-      name: "Web Server Production",
-      type: "server",
-      ip_address: "192.168.1.10",
-      status: "online",
-      last_scan: "2024-01-22 14:30:00",
-      vulnerabilities: 2,
-      criticality: "high"
-    },
-    {
-      id: "AST-002",
-      name: "Database Primary",
-      type: "database",
-      ip_address: "192.168.1.20",
-      status: "online",
-      last_scan: "2024-01-22 14:25:00",
-      vulnerabilities: 0,
-      criticality: "critical"
-    },
-    {
-      id: "AST-003",
-      name: "Load Balancer",
-      type: "network",
-      ip_address: "192.168.1.5",
-      status: "warning",
-      last_scan: "2024-01-22 14:20:00",
-      vulnerabilities: 5,
-      criticality: "high"
-    },
-    {
-      id: "AST-004",
-      name: "API Gateway",
-      type: "application",
-      ip_address: "192.168.1.15",
-      status: "online",
-      last_scan: "2024-01-22 14:15:00",
-      vulnerabilities: 1,
-      criticality: "medium"
-    },
-    {
-      id: "AST-005",
-      name: "Backup Server",
-      type: "server",
-      ip_address: "192.168.1.30",
-      status: "offline",
-      last_scan: "2024-01-22 10:00:00",
-      vulnerabilities: 3,
-      criticality: "low"
-    }
-  ]);
+  const [assets, setAssets] = useState<Asset[]>([]);
 
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);

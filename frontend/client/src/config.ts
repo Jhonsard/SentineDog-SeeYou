@@ -52,6 +52,11 @@ export const API_ENDPOINTS = {
     ALIGNMENT: `${API_BASE_URL}/api/${API_VERSION}/ai/alignment`,
     MODE: `${API_BASE_URL}/api/${API_VERSION}/ai/mode`,
   },
+  ENGINE: {
+    STATUS: `${API_BASE_URL}/api/${API_VERSION}/engine/status`,
+    SNIFFER_START: `${API_BASE_URL}/api/${API_VERSION}/engine/sniffer/start`,
+    SNIFFER_STOP: `${API_BASE_URL}/api/${API_VERSION}/engine/sniffer/stop`,
+  },
   KEYS: {
     ROTATE: `${API_BASE_URL}/api/${API_VERSION}/keys/rotate`,
     CURRENT: `${API_BASE_URL}/api/${API_VERSION}/keys/current`,

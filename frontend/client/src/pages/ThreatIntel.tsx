@@ -21,41 +21,7 @@ interface Threat {
 
 export default function ThreatIntel() {
   const { token } = useAuth();
-  const [threats, setThreats] = useState<Threat[]>([
-    {
-      id: "THREAT-001",
-      threat_type: "APT Campaign",
-      source: "MITRE ATT&CK",
-      severity: "critical",
-      confidence: 95,
-      first_seen: "2024-01-15",
-      last_seen: "2024-01-20",
-      description: "Advanced Persistent Threat targeting financial institutions",
-      indicators: ["192.168.1.100", "malicious-domain.com"]
-    },
-    {
-      id: "THREAT-002",
-      threat_type: "Ransomware",
-      source: "CISA",
-      severity: "high",
-      confidence: 88,
-      first_seen: "2024-01-18",
-      last_seen: "2024-01-19",
-      description: "New ransomware variant targeting healthcare sector",
-      indicators: ["10.0.0.50", "ransomware-c2.net"]
-    },
-    {
-      id: "THREAT-003",
-      threat_type: "DDoS Botnet",
-      source: "ShadowServer",
-      severity: "medium",
-      confidence: 72,
-      first_seen: "2024-01-10",
-      last_seen: "2024-01-22",
-      description: "Mirai botnet variant active in Eastern Europe",
-      indicators: ["203.0.113.0/24"]
-    }
-  ]);
+  const [threats, setThreats] = useState<Threat[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadThreats = async () => {
@@ -179,7 +145,7 @@ export default function ThreatIntel() {
             <CardTitle className="text-xs font-medium text-zinc-400">Avg Confidence</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-cyan-500">{Math.round(threats.reduce((a, b) => a + b.confidence, 0) / threats.length)}%</div>
+            <div className="text-2xl font-bold text-cyan-500">{threats.length ? Math.round(threats.reduce((a, b) => a + b.confidence, 0) / threats.length) : 0}%</div>
           </CardContent>
         </Card>
       </div>

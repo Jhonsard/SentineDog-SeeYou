@@ -54,22 +54,20 @@ export default function Settings() {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    toast.success("Settings saved successfully");
+  const handleSave = () => {
+    toast.info(
+      "Les paramètres généraux ne sont pas persistés côté serveur. La configuration Email et l'Agent IA ci-dessous sont, elles, enregistrées via l'API.",
+    );
   };
 
   const handleReset = () => {
-    toast.info("Settings reset to defaults");
+    toast.info("Champs réinitialisés (modifications non enregistrées).");
   };
 
   const fetchEmailConfig = async () => {
     setEmailStatus(prev => ({ ...prev, isLoading: true }));
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.EMAIL.CONFIG, {
         method: "GET",
         headers: {
@@ -98,7 +96,7 @@ export default function Settings() {
 
   const saveEmailConfig = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.EMAIL.CONFIG, {
         method: "POST",
         headers: {
@@ -129,7 +127,7 @@ export default function Settings() {
 
   const testEmailConfig = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.EMAIL.TEST, {
         method: "POST",
         headers: {
