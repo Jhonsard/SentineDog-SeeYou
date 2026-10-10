@@ -34,6 +34,7 @@ export function SidebarLayout() {
   
   // --- ÉTATS GLOBALISÉS ET SYNCHRONISÉS ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [dashboardView, setDashboardView] = useState<"overview" | "network" | "endpoint">("overview");
   const [currentTab, setCurrentTab] = useState<"dashboard" | "blacklist" | "threat-intel" | "network-logs" | "assets" | "settings" | "profile" | "nodes">("dashboard");
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -287,12 +288,36 @@ export function SidebarLayout() {
     }
   }, [loadAiStatus, token]);
 
+  const handleToggleSidebar = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
+      setIsSidebarOpen((v) => !v);
+    } else {
+      setIsMobileOpen(false);
+    }
+  };
+
+  const selectTab = (tab: Parameters<typeof setCurrentTab>[0]) => {
+    setCurrentTab(tab);
+    setIsMobileOpen(false);
+  };
+
   return (
     <div className="flex min-h-screen bg-void text-[#e1e2ec] antialiased grid-bg">
       
       {/* ================= BARRE LATÉRALE DE GAUCHE : IDENTITÉ ULPGL SOC ================= */}
-      <aside className={`border-r border-[#1d2027] bg-[#0c0e12] flex flex-col justify-between shrink-0 font-mono transition-all duration-300 ${
-        isSidebarOpen ? 'w-64 px-4 py-6' : 'w-16 px-2 py-6'
+      {/* Overlay mobile (ferme le tiroir au clic) */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={`border-r border-[#1d2027] bg-[#0c0e12] flex flex-col justify-between shrink-0 font-mono transition-all duration-300 fixed inset-y-0 left-0 z-50 w-64 px-4 py-6 lg:static lg:z-auto lg:translate-x-0 overflow-y-auto ${
+        isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+      } ${
+        isSidebarOpen ? 'lg:w-64 lg:px-4' : 'lg:w-16 lg:px-2'
       }`}>
         <div className="space-y-6">
           <div className="flex items-center justify-between px-2">
@@ -303,7 +328,8 @@ export function SidebarLayout() {
               )}
             </div>
             <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              onClick={handleToggleSidebar}
+              aria-label="Basculer la navigation"
               className="flex items-center justify-center p-1 rounded-sm transition-all hover:bg-[#1d2027] text-[#c2c6d6]"
             >
               {isSidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -312,7 +338,7 @@ export function SidebarLayout() {
 
           <nav className="space-y-1">
             <button
-              onClick={() => { setCurrentTab("dashboard"); setDashboardView("overview"); }}
+              onClick={() => { selectTab("dashboard"); setDashboardView("overview"); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
                 currentTab === "dashboard"
                   ? "bg-[#4d8eff]/10 text-[#4d8eff] border border-[#4d8eff]/20"
@@ -324,7 +350,7 @@ export function SidebarLayout() {
             </button>
 
             <button
-              onClick={() => setCurrentTab("threat-intel")}
+              onClick={() => selectTab("threat-intel")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
                 currentTab === "threat-intel"
                   ? "bg-[#f97316]/10 text-[#f97316] border border-[#f97316]/20"
@@ -336,7 +362,7 @@ export function SidebarLayout() {
             </button>
 
             <button
-              onClick={() => setCurrentTab("network-logs")}
+              onClick={() => selectTab("network-logs")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
                 currentTab === "network-logs"
                   ? "bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20"
@@ -348,7 +374,7 @@ export function SidebarLayout() {
             </button>
 
             <button
-              onClick={() => setCurrentTab("assets")}
+              onClick={() => selectTab("assets")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
                 currentTab === "assets"
                   ? "bg-[#06b6d4]/10 text-[#06b6d4] border border-[#06b6d4]/20"
@@ -360,7 +386,7 @@ export function SidebarLayout() {
             </button>
 
             <button
-              onClick={() => setCurrentTab("blacklist")}
+              onClick={() => selectTab("blacklist")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
                 currentTab === "blacklist"
                   ? "bg-[#ffb4ab]/10 text-[#ffb4ab] border border-[#ffb4ab]/20"
@@ -372,7 +398,7 @@ export function SidebarLayout() {
             </button>
 
             <button
-              onClick={() => setCurrentTab("profile")}
+              onClick={() => selectTab("profile")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
                 currentTab === "profile"
                   ? "bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20"
@@ -384,7 +410,7 @@ export function SidebarLayout() {
             </button>
 
             <button
-              onClick={() => setCurrentTab("nodes")}
+              onClick={() => selectTab("nodes")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
                 currentTab === "nodes"
                   ? "bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20"
@@ -396,7 +422,7 @@ export function SidebarLayout() {
             </button>
 
             <button
-              onClick={() => setCurrentTab("settings")}
+              onClick={() => selectTab("settings")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
                 currentTab === "settings"
                   ? "bg-[#a855f7]/10 text-[#a855f7] border border-[#a855f7]/20"
@@ -422,19 +448,26 @@ export function SidebarLayout() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         
         {/* TOPBAR — glassmorphic, mission-control header */}
-        <header className="glass flex justify-between items-center border-b border-edge px-6 py-3 shrink-0">
-          <div className="flex items-center gap-3">
-            <h1 className="text-sm font-ui font-bold tracking-wide text-[#e1e2ec]">MONITEUR GLOBAL DU SYSTÈME</h1>
-            <div className="h-4 w-px bg-edge"></div>
-            <div className="flex items-center gap-1.5 text-[11px] text-secure font-data-mono">
+        <header className="glass flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-edge px-3 sm:px-6 py-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              onClick={() => setIsMobileOpen(true)}
+              aria-label="Ouvrir la navigation"
+              className="lg:hidden flex items-center justify-center p-1.5 rounded-sm text-[#c2c6d6] hover:bg-[#1d2027] transition-colors shrink-0"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h1 className="text-xs sm:text-sm font-ui font-bold tracking-wide text-[#e1e2ec] truncate">MONITEUR GLOBAL DU SYSTÈME</h1>
+            <div className="hidden md:block h-4 w-px bg-edge"></div>
+            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-secure font-data-mono whitespace-nowrap">
               <span className={`h-1.5 w-1.5 rounded-full ${wsConnected ? "bg-secure animate-pulse" : "bg-zinc-600"}`} />
               Pipeline Live : {wsConnected ? "STREAMING ACTIF" : "IDLE"}
             </div>
           </div>
           
-          <div className="flex items-center gap-6 font-data-mono text-[11px] text-[#c2c6d6]">
-            <div>PPS: <span className="text-info-soft font-bold">{stats.pps.toLocaleString()}</span></div>
-            <div>CHARGE: <span className="text-info-soft font-bold">{stats.network_load}</span></div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 font-data-mono text-[11px] text-[#c2c6d6]">
+            <div className="hidden xl:block">PPS: <span className="text-info-soft font-bold">{stats.pps.toLocaleString()}</span></div>
+            <div className="hidden xl:block">CHARGE: <span className="text-info-soft font-bold">{stats.network_load}</span></div>
 
 {/* AGENT IA — statut live + bascule rapide */}
             <button
@@ -444,14 +477,14 @@ export function SidebarLayout() {
               className="flex items-center gap-2 rounded-md border border-edge bg-surface-2/60 px-2.5 py-1.5 font-data-mono text-[11px] text-[#c2c6d6] transition-colors hover:border-info/40 hover:text-info-soft disabled:opacity-60"
             >
               <Brain className="h-3.5 w-3.5 text-purple-400" />
-              Agent IA
+              <span className="hidden sm:inline">Agent IA</span>
               <span className={`h-2 w-2 rounded-full ${aiModeEnabled ? (contextAiTrained ? "bg-secure animate-pulse" : "bg-warning") : "bg-zinc-600"}`} />
-              <span className={aiModeEnabled ? "text-secure-soft font-bold" : "text-[#8c909f]"}>{aiModeEnabled ? "ACTIF" : "INACTIF"}</span>
+              <span className={`hidden sm:inline ${aiModeEnabled ? "text-secure-soft font-bold" : "text-[#8c909f]"}`}>{aiModeEnabled ? "ACTIF" : "INACTIF"}</span>
               {aiBusy && <Loader2 className="h-3 w-3 animate-spin" />}
             </button>
 
             {/* MOTEUR D'INTERCEPTION */}
-            <div className="flex gap-3 ml-4">
+            <div className="flex gap-2 sm:gap-3 sm:ml-4">
               <button 
                 onClick={() => setIsMonitoring(true)} 
                 disabled={isMonitoring} 
@@ -472,7 +505,7 @@ export function SidebarLayout() {
 
         {/* TOP SELECTION RIBBON — sub-dashboards (client-side, no route change) */}
         {currentTab === "dashboard" && (
-          <nav className="flex items-center gap-1 border-b border-edge bg-surface-1/50 px-4 py-2 shrink-0">
+          <nav className="flex items-center gap-1 border-b border-edge bg-surface-1/50 px-2 sm:px-4 py-2 shrink-0 overflow-x-auto whitespace-nowrap">
             {([
               { id: "overview", label: "Global Overview" },
               { id: "network", label: "Network Traffic" },
@@ -523,7 +556,7 @@ export function SidebarLayout() {
         ) : currentTab === "settings" ? (
             <Settings />
         ) : (
-          <main className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
+          <main className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col gap-3 sm:gap-4 custom-scrollbar">
             {dashboardView === "overview" && (
               <>
                 {/* GRILLE DES COMPOSANTS KPI CARD */}

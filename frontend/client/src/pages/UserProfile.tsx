@@ -66,7 +66,7 @@ export default function UserProfile() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 font-sans-serif h-screen overflow-hidden flex flex-col">
+    <div className="container mx-auto px-4 py-8 font-sans-serif flex flex-col">
       <div className="flex items-center justify-between mb-6 shrink-0">
         <div className="flex items-center gap-3">
           <User className="h-6 w-6 text-emerald-500" />
