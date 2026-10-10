@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, ShieldX, Terminal, RefreshCw, Activity, ShieldAlert, Gavel, Zap, Shield, Globe, Network, Server, Settings as SettingsIcon, Menu, X, User as UserIcon, Server as ServerIcon, Brain, Loader2 } from 'lucide-react';
+import { LayoutDashboard, ShieldX, RefreshCw, Activity, ShieldAlert, Gavel, Zap, Shield, Globe, Network, Server, Settings as SettingsIcon, Menu, X, User as UserIcon, Server as ServerIcon, Brain, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import MetricCardsGrid from './MetricCardsGrid';
 import { TrafficAttackChart } from './TrafficAttackChart';
@@ -322,7 +322,7 @@ export function SidebarLayout() {
         <div className="space-y-6">
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-2.5">
-              <Terminal className="h-5 w-5 text-[#4d8eff] shrink-0" />
+              <img src="/Seeyou.jpeg" alt="SeeYou" className="h-6 w-6 shrink-0 rounded-sm object-cover" />
               {isSidebarOpen && (
                 <span className="text-xs font-bold tracking-widest text-[#e1e2ec] uppercase">SeeYou</span>
               )}

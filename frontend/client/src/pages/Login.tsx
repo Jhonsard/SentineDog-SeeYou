@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldAlert, Lock, User } from "lucide-react";
+import { Lock, User } from "lucide-react";
 import { toast } from "sonner";
 import { API_ENDPOINTS } from "@/config";
 
@@ -48,8 +48,8 @@ export default function Login() {
     <div className="min-h-screen w-full flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md border-border bg-card/60 backdrop-blur shadow-2xl">
         <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-            <ShieldAlert className="h-6 w-6 text-primary" />
+          <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-border bg-black">
+            <img src="/Seeyou.jpeg" alt="SeeYou" className="h-full w-full object-cover" />
           </div>
           <CardTitle className="text-2xl font-mono tracking-tight">Console de Contrôle IDS/IPS</CardTitle>
           <CardDescription>Entrez vos privilèges pour déverrouiller l'actionneur du pare-feu.</CardDescription>

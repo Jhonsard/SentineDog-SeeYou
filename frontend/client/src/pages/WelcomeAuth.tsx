@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Lock, User, ArrowRight, AlertCircle, CheckCircle } from "lucide-react";
+import { Lock, User, ArrowRight, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_ENDPOINTS } from "@/config";
@@ -139,8 +139,8 @@ export default function WelcomeAuth() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#4d8eff] to-[#3b82f6] flex items-center justify-center">
-              <Shield className="h-8 w-8 text-white" />
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-zinc-800 bg-black">
+              <img src="/Seeyou.jpeg" alt="SeeYou" className="h-full w-full object-cover" />
             </div>
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">SeeYou</h1>
