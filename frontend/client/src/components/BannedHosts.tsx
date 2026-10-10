@@ -38,7 +38,7 @@ export default function BannedHosts() {
   const filtered = bannedList.filter(item => item.ip.includes(searchQuery));
 
   return (
-    <div className="p-6 flex flex-col gap-6 font-mono">
+    <div className="flex flex-col gap-4 p-4 font-mono sm:gap-6 sm:p-6">
       <div>
         <h2 className="text-sm font-bold text-[#ffb4ab] uppercase tracking-wider flex items-center gap-2">
           <ShieldX className="h-4 w-4" /> Registre des Hôtes Bloqués (Noyau Netfilter)
@@ -48,7 +48,7 @@ export default function BannedHosts() {
         </p>
       </div>
 
-      <div className="flex items-center gap-2 bg-[#0c0e12] border border-[#1d2027] rounded-sm px-3 py-1.5 max-w-md">
+      <div className="flex w-full items-center gap-2 rounded-sm border border-[#1d2027] bg-[#0c0e12] px-3 py-1.5 sm:max-w-md">
         <Search className="h-3.5 w-3.5 text-[#8c909f]" />
         <input 
           type="text" 

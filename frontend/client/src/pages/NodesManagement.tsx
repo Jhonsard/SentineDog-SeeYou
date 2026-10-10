@@ -176,7 +176,7 @@ export default function NodesManagement() {
 
   return (
     <div className="container mx-auto px-4 py-8 font-sans-serif flex flex-col">
-      <div className="flex items-center justify-between mb-6 shrink-0">
+      <div className="flex flex-col gap-4 mb-6 shrink-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Server className="h-6 w-6 text-blue-500" />
           <div>
@@ -184,7 +184,7 @@ export default function NodesManagement() {
             <p className="text-xs text-zinc-500">Gestion multi-nœuds pour la surveillance distribuée</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="gap-2" onClick={fetchHierarchy} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
           </Button>

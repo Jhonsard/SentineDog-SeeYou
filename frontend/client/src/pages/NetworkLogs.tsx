@@ -168,7 +168,7 @@ export default function NetworkLogs() {
 
   return (
     <div className="container mx-auto px-4 py-8 font-sans-serif">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Network className="h-6 w-6 text-blue-500" />
           <div>
@@ -176,7 +176,7 @@ export default function NetworkLogs() {
             <p className="text-xs text-zinc-500">Journal d'activité réseau et flux de trafic</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="gap-2" onClick={() => setLocation("/logs")}>
             <FileText className="h-4 w-4" /> Logs Management
           </Button>
@@ -228,7 +228,7 @@ export default function NetworkLogs() {
       {/* Filters */}
       <Card className="bg-zinc-950/40 border-zinc-900 mb-6">
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-500" />
               <input
@@ -242,7 +242,7 @@ export default function NetworkLogs() {
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="bg-zinc-900 border border-zinc-800 rounded-md px-4 py-2 text-sm text-white focus:outline-none focus:border-zinc-700"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-4 py-2 text-sm text-white focus:outline-none focus:border-zinc-700 sm:w-auto"
             >
               <option value="all">All Actions</option>
               <option value="allowed">Allowed</option>
@@ -252,7 +252,7 @@ export default function NetworkLogs() {
             <select
               value={protocolFilter}
               onChange={(e) => setProtocolFilter(e.target.value)}
-              className="bg-zinc-900 border border-zinc-800 rounded-md px-4 py-2 text-sm text-white focus:outline-none focus:border-zinc-700"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-4 py-2 text-sm text-white focus:outline-none focus:border-zinc-700 sm:w-auto"
             >
               <option value="all">All Protocols</option>
               <option value="TCP">TCP</option>

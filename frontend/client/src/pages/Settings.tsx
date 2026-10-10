@@ -226,7 +226,7 @@ export default function Settings() {
 
   return (
     <div className="container mx-auto px-4 py-8 font-sans-serif flex flex-col">
-      <div className="flex items-center justify-between mb-6 shrink-0">
+      <div className="flex flex-col gap-4 mb-6 shrink-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <SettingsIcon className="h-6 w-6 text-purple-500" />
           <div>
@@ -234,7 +234,7 @@ export default function Settings() {
             <p className="text-xs text-zinc-500">Configuration de la plateforme de sécurité</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="gap-2" onClick={handleReset}>
             <RefreshCw className="h-4 w-4" /> Reset
           </Button>
@@ -433,7 +433,7 @@ export default function Settings() {
                 className="bg-zinc-900 border-zinc-800 text-white text-sm"
               />
             </div>
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 pt-2">
               <Button size="sm" className="gap-2 flex-1" onClick={saveEmailConfig}>
                 <Save className="h-3 w-3" /> Save Config
               </Button>
@@ -621,7 +621,7 @@ export default function Settings() {
 
             <div className="space-y-2 border-t border-zinc-800 pt-3">
               <Label className="text-xs text-zinc-400">Tester une décision</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={testIp}
                   onChange={(e) => setTestIp(e.target.value)}
