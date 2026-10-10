@@ -324,7 +324,7 @@ export function SidebarLayout() {
             <div className="flex items-center gap-2.5">
               <Terminal className="h-5 w-5 text-[#4d8eff] shrink-0" />
               {isSidebarOpen && (
-                <span className="text-xs font-bold tracking-widest text-[#e1e2ec] uppercase">ULPGL_SOC v1.0</span>
+                <span className="text-xs font-bold tracking-widest text-[#e1e2ec] uppercase">SeeYou</span>
               )}
             </div>
             <button
@@ -529,8 +529,9 @@ export function SidebarLayout() {
                 disabled={refreshing}
                 className="flex items-center gap-1.5 rounded-md border border-edge bg-surface-2/60 px-2 py-1 text-[#c2c6d6] transition-colors hover:border-info/40 hover:text-info-soft disabled:opacity-60"
                 title="Rafraîchir les widgets"
+                aria-label="Rafraîchir les widgets"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
               </button>
               <span className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-secure animate-pulse" />
