@@ -17,6 +17,7 @@ from app.core.dependencies import get_db, SessionLocal, engine
 from app.engine.sniffer import NetworkSniffer
 from app.engine.processor import PacketProcessor
 from app.engine.queue_manager import PacketQueueManager
+from app.engine.controller import EngineController
 from app.services.alert_manager import AlertManager
 from app.services.websocket_manager import websocket_manager
 from app.api.endpoints.auth import router as auth_router
@@ -25,6 +26,7 @@ from app.api.endpoints.email_config import router as email_config_router
 from app.api.endpoints.nodes import router as nodes_router
 from app.api.endpoints.keys import router as keys_router
 from app.api.endpoints.ai import router as ai_router
+from app.api.endpoints.engine import router as engine_router
 from app.core.rate_limiter import limiter
 from app.core.thread_pools import prewarm_threadpools, shutdown_threadpools
 from app.engine.firewall import firewall_manager
@@ -33,6 +35,55 @@ from app.mcp.server import create_mcp_app
 
 configure_logging(level=logging.INFO)
 logger = logging.getLogger("ids_ips.main")
+
+
+def _ensure_bootstrap_admin() -> None:
+    """Crée (ou promeut) le compte administrateur de démarrage.
+
+    Corrige un bug historique : le compte était créé avec un attribut inexistant
+    (``is_superuser``) et sans ``role="admin"``. Résultat : toutes les routes
+    d'administration renvoyaient 403 (dont /ai/* et /engine/*), et le front
+    silencieusement retombait sur des données de démonstration.
+    """
+    username = settings.INIT_ADMIN_USERNAME
+    if not username:
+        return
+    from app.core.auth_utils import get_password_hash
+
+    db = SessionLocal()
+    try:
+        admin_user = db.query(User).filter(User.username == username).first()
+        if admin_user is None:
+            if not settings.INIT_ADMIN_PASSWORD:
+                logger.warning(
+                    "INIT_ADMIN_PASSWORD absent : aucun administrateur de démarrage créé."
+                )
+                return
+            admin_user = User(
+                username=username,
+                email=settings.INIT_ADMIN_EMAIL,
+                hashed_password=get_password_hash(settings.INIT_ADMIN_PASSWORD),
+                role="admin",
+                is_active=True,
+            )
+            db.add(admin_user)
+            db.commit()
+            logger.info("Compte administrateur de démarrage '%s' créé (role=admin).", username)
+            return
+        if admin_user.role != "admin":
+            admin_user.role = "admin"
+            if not admin_user.is_active:
+                admin_user.is_active = True
+            db.commit()
+            logger.warning(
+                "Compte de démarrage '%s' promu 'admin' (correction automatique du rôle).",
+                username,
+            )
+    except Exception as exc:
+        logger.warning("Impossible d'initialiser le compte administrateur : %s", exc)
+    finally:
+        db.close()
+
 
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
@@ -61,35 +112,8 @@ async def app_lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Alembic n'a pas pu s'exécuter (fallback direct actif) : {str(e)}")
 
-    # 3. Création automatique de l'utilisateur Admin par défaut si absent (Hashage autonome)
-    try:
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        
-        db = SessionLocal()
-        admin_user = db.query(User).filter(User.username == settings.INIT_ADMIN_USERNAME).first()
-        if not admin_user:
-            hashed_pwd = pwd_context.hash(settings.INIT_ADMIN_PASSWORD)
-            new_admin = User(
-                username=settings.INIT_ADMIN_USERNAME,
-                email=settings.INIT_ADMIN_EMAIL,
-                hashed_password=hashed_pwd,
-                is_superuser=True,
-                is_active=True
-            )
-            db.add(new_admin)
-            db.commit()
-            logger.info(f"Compte administrateur initial '{settings.INIT_ADMIN_USERNAME}' créé avec succès.")
-        db.close()
-    except Exception as admin_err:
-        logger.warning(f"Impossible d'initialiser le compte admin par défaut : {str(admin_err)}")
-
-    # Seed initial admin user if configured
-    try:
-        from scripts.seed_admin import create_admin_user
-        create_admin_user()
-    except Exception as e:
-        logger.warning(f"Seed admin non executé: {e}")
+    # 3. Création / correction automatique du compte administrateur de démarrage
+    _ensure_bootstrap_admin()
 
     packet_queue: PacketQueueManager = PacketQueueManager(maxsize=5000)
     app.state.packet_queue = packet_queue
@@ -104,10 +128,18 @@ async def app_lifespan(app: FastAPI):
     processor = PacketProcessor(alert_callback=alert_manager.process_new_alert)
     sniffer = NetworkSniffer(packet_queue=packet_queue, interface=settings.NETWORK_INTERFACE)
 
-    processor_task = asyncio.create_task(processor.start_processing(packet_queue))
-    sniffer_task = asyncio.create_task(sniffer.start_capture())
-    app.state.sniffer_task = sniffer_task
-    app.state.processor_task = processor_task
+    # Le moteur est piloté par l'API (/api/v1/engine/sniffer/start|stop).
+    # Le processeur consomme la file ; le sniffer ne capture qu'à la demande
+    # (sauf si SNIFFER_AUTOSTART=true).
+    engine_ctl = EngineController(packet_queue=packet_queue, processor=processor, sniffer=sniffer)
+    app.state.engine = engine_ctl
+    await engine_ctl.start_processor()
+    if getattr(settings, "SNIFFER_AUTOSTART", False):
+        await engine_ctl.start_sniffer()
+    else:
+        logger.info(
+            "Sniffer réseau en attente : armez-le via POST /api/v1/engine/sniffer/start."
+        )
 
     try:
         from app.services.ai_decision_service import _load_rl_inference, AIDecisionService
@@ -154,13 +186,9 @@ async def app_lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
-    await sniffer.stop_capture()
-    processor.stop_processing()
-
-    sniffer_task.cancel()
-    processor_task.cancel()
-
-    await asyncio.gather(sniffer_task, processor_task, return_exceptions=True)
+    engine_ctl = getattr(app.state, "engine", None)
+    if engine_ctl is not None:
+        await engine_ctl.shutdown()
 
     # Arrêt des pools de threads dédiés (DB / iptables / TensorFlow).
     await shutdown_threadpools()
@@ -207,6 +235,7 @@ app.include_router(email_config_router, prefix="/api/v1")
 app.include_router(nodes_router, prefix="/api/v1")
 app.include_router(keys_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
+app.include_router(engine_router, prefix="/api/v1")
 
 app.mount("/mcp", create_mcp_app(), name="mcp")
 
@@ -214,8 +243,9 @@ app.mount("/mcp", create_mcp_app(), name="mcp")
 async def health_check(db: Session = Depends(get_db)):
     uptime = time.time() - app.state.start_time
     queue_metrics = app.state.packet_queue.get_metrics()
-    sniffer_running = getattr(app.state, "sniffer_task", None) is not None and not getattr(app.state, "sniffer_task").done()
-    processor_running = getattr(app.state, "processor_task", None) is not None and not getattr(app.state, "processor_task").done()
+    engine_ctl = getattr(app.state, "engine", None)
+    sniffer_running = bool(engine_ctl and engine_ctl.sniffer_running)
+    processor_running = bool(engine_ctl and engine_ctl.processor_running)
     engine_status = {
         "sniffer": "running" if sniffer_running else "stopped",
         "processor": "running" if processor_running else "stopped",

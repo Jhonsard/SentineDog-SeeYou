@@ -17,6 +17,10 @@ class Settings(BaseSettings):
 
     API_HOST: str = Field(default="0.0.0.0")
     API_PORT: int = Field(default=8000)
+    SNIFFER_AUTOSTART: bool = Field(
+        default=False,
+        description="Démarre la capture réseau automatiquement au lancement. Si false, l'opérateur arme le moteur via POST /api/v1/engine/sniffer/start.",
+    )
 
     DATABASE_URL: str = Field(default="sqlite:///./ids_ips_local.db")
     POSTGRES_HOST: Optional[str] = Field(default=None)
@@ -34,6 +38,9 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: Optional[str] = Field(default=None)
 
     SECRET_KEY: str
+    INIT_ADMIN_USERNAME: str = Field(default="admin", description="Compte administrateur de démarrage (bootstrap).")
+    INIT_ADMIN_EMAIL: str = Field(default="admin@localhost", description="Email du compte administrateur de démarrage.")
+    INIT_ADMIN_PASSWORD: Optional[str] = Field(default=None, description="Mot de passe du compte administrateur de démarrage. Si absent, aucun admin n'est créé/promu au démarrage.")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, ge=5, le=480)
 
@@ -66,8 +73,9 @@ class Settings(BaseSettings):
     RL_MANUAL_MODE_TRAIN_INTERVAL: int = Field(default=100, ge=10, le=10000)
 
     MCP_API_KEY: str = Field(
-        default="change_this_mcp_secret_key",
-        description="Clé de SECOURS statique pour le plan MCP. Ignorée sauf si MCP_LEGACY_API_KEY_ENABLED=true.",
+        default="",
+        description="Clé de SECOURS statique pour le plan MCP. Vide par défaut (registre de clés à scopes). "
+        "Doit être définie explicitement si MCP_LEGACY_API_KEY_ENABLED=true.",
     )
     MCP_LEGACY_API_KEY_ENABLED: bool = Field(
         default=False,

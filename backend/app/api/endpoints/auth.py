@@ -117,11 +117,13 @@ async def register_user(
     hashed_password = get_password_hash(user_data.password)
     
     # Créer l'utilisateur
+    # Sécurité : le rôle est TOUJOURS forcé à "user" à l'inscription.
+    # Le champ role du client ne doit jamais permettre une escalade de privilèges.
     new_user = UserModel(
         username=user_data.username,
         email=user_data.email,
         hashed_password=hashed_password,
-        role=user_data.role,
+        role="user",
         is_active=True
     )
     
