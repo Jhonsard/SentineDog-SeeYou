@@ -1,6 +1,5 @@
 fastapi==0.115.0
 uvicorn[standard]>=0.31.6
-uvicorn[standard]>=0.31.1
 scapy==2.5.0
 sqlalchemy==2.0.35
 python-jose[cryptography]==3.3.0
@@ -19,10 +18,9 @@ alembic==1.13.2
 pytest==8.3.2
 pytest-asyncio==0.23.8
 huggingface-hub>=0.20.0
-gymnasium
 mcp==1.30.0
 gymnasium>=0.29.0
 numpy>=1.24.0
 pandas>=2.0.0
 tensorflow>=2.15.0
-huggingface-hub>=0.20.0
+bcrypt
