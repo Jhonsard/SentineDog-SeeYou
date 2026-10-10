@@ -322,7 +322,7 @@ export function SidebarLayout() {
         <div className="space-y-6">
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-2.5">
-              <img src="/Seeyou.jpeg" alt="SeeYou" className="h-6 w-6 shrink-0 rounded-sm object-cover" />
+              <img src="/Seeyou.webp" alt="SeeYou" className="h-7 w-7 shrink-0 rounded-sm object-cover ring-1 ring-[#1d2027]" />
               {isSidebarOpen && (
                 <span className="text-xs font-bold tracking-widest text-[#e1e2ec] uppercase">SeeYou</span>
               )}

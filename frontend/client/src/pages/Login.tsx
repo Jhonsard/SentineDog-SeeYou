@@ -49,7 +49,7 @@ export default function Login() {
       <Card className="w-full max-w-md border-border bg-card/60 backdrop-blur shadow-2xl">
         <CardHeader className="space-y-2 text-center">
           <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-border bg-black">
-            <img src="/Seeyou.jpeg" alt="SeeYou" className="h-full w-full object-cover" />
+            <img src="/Seeyou.webp" alt="SeeYou" className="h-full w-full object-cover" />
           </div>
           <CardTitle className="text-2xl font-mono tracking-tight">Console de Contrôle IDS/IPS</CardTitle>
           <CardDescription>Entrez vos privilèges pour déverrouiller l'actionneur du pare-feu.</CardDescription>

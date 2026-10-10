@@ -140,7 +140,7 @@ export default function WelcomeAuth() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-zinc-800 bg-black">
-              <img src="/Seeyou.jpeg" alt="SeeYou" className="h-full w-full object-cover" />
+              <img src="/Seeyou.webp" alt="SeeYou" className="h-full w-full object-cover" />
             </div>
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">SeeYou</h1>
