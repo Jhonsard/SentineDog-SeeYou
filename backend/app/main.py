@@ -60,9 +60,11 @@ async def app_lifespan(app: FastAPI):
     try:
         import bcrypt
 
-        admin_username = os.environ.get("INIT_ADMIN_USERNAME") or os.environ.get("ADMIN_USERNAME")
-        admin_password = os.environ.get("INIT_ADMIN_PASSWORD") or os.environ.get("ADMIN_PASSWORD")
-        admin_email = os.environ.get("INIT_ADMIN_EMAIL") or os.environ.get("ADMIN_EMAIL")
+        # Lecture via `settings` : pydantic-settings charge .env dans l'objet Settings mais
+        # n'exporte PAS ces variables dans os.environ, donc os.environ les ignorait.
+        admin_username = settings.INIT_ADMIN_USERNAME or settings.ADMIN_USERNAME
+        admin_password = settings.INIT_ADMIN_PASSWORD or settings.ADMIN_PASSWORD
+        admin_email = settings.INIT_ADMIN_EMAIL or settings.ADMIN_EMAIL
 
         if admin_username and admin_password:
             with SessionLocal() as db:

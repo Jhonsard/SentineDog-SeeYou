@@ -33,6 +33,14 @@ class Settings(BaseSettings):
     SMTP_SENDER_EMAIL: Optional[str] = Field(default=None)
     ADMIN_EMAIL: Optional[str] = Field(default=None)
 
+    # Compte administrateur créé au démarrage s'il n'existe pas encore (facultatif).
+    INIT_ADMIN_USERNAME: Optional[str] = Field(default=None)
+    INIT_ADMIN_PASSWORD: Optional[str] = Field(default=None)
+    INIT_ADMIN_EMAIL: Optional[str] = Field(default=None)
+    # Alias historiques utilisés par le fichier .env des déploiements existants.
+    ADMIN_USERNAME: Optional[str] = Field(default=None)
+    ADMIN_PASSWORD: Optional[str] = Field(default=None)
+
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, ge=5, le=480)
