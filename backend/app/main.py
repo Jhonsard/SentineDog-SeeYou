@@ -151,27 +151,10 @@ async def app_lifespan(app: FastAPI):
             logger.info("Module RL precharge avec succes depuis %s.", source)
         else:
             logger.warning("Module RL non entraîné, mode fallback manuel actif.")
-
-        if getattr(settings, "RL_MANUAL_MODE_LEARNING_ENABLED", False):
-            async def _background_train_loop():
-                while True:
-                    try:
-                        await asyncio.sleep(30)
-                        service = app.state.ai_service
-                        if service is not None:
-                            result = service.maybe_train()
-                            if result.get("status") == "trained":
-                                logger.info("Entrainement Humain en arriere-plan: %s", result)
-                    except asyncio.CancelledError:
-                        break
-                    except Exception as exc:
-                        logger.error("Erreur dans la boucle d'entrainement Humain: %s", exc)
-
-            app.state.background_train_task = asyncio.create_task(_background_train_loop())
-            logger.info("Apprentissage Humain en mode manuel active (entrainement en arriere-plan).")
     except Exception as exc:
-        logger.warning("Module RL non disponible au demarrage: %s", exc)
+        logger.warning("Module RL non disponible au demarrage (fallback manuel actif): %s", exc)
         app.state.rl_inference = None
+        app.state.ai_service = None
 
     logger.info("Moteurs d'interception et d'analyse comportementale déployés avec succès.")
     
