@@ -2,6 +2,12 @@ import logging
 from contextlib import asynccontextmanager
 import asyncio
 import time
+import sys
+import os
+
+# Ajouter le répertoire racine du projet au path pour permettre l'import absolu
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -10,7 +16,7 @@ from sqlalchemy import text
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 
-# Importations des composants d'infrastructure centralisés (Strictement conformes à votre version d'origine)
+# Importations des composants d'infrastructure centralisés
 from app.core.config import settings
 from app.db.models import Base, User
 from app.core.dependencies import get_db, SessionLocal, engine
@@ -38,67 +44,48 @@ logger = logging.getLogger("ids_ips.main")
 async def app_lifespan(app: FastAPI):
     app.state.start_time = time.time()
     logger.info("--- INITIALISATION DU BACKEND IDS/IPS ULPGL ---")
-    
+
     if len(settings.SECRET_KEY) < 32:
         logger.critical("SECRET_KEY trop courte (<32 caracteres). Arret immediat.")
         raise RuntimeError("SECRET_KEY invalide: longueur minimum 32 caracteres.")
-    
-    # 1. Sécurité : Création / vérification directe des tables PostgreSQL
+
+    # 1. Creation directe des tables (Alembic exclu du lifespan pour ne pas bloquer le demarrage)
     try:
         Base.metadata.create_all(bind=engine)
-        logger.info("Tables PostgreSQL initialisées/vérifiées avec succès (Base.metadata).")
+        logger.info("Tables initialisées/vérifiées avec succès (Base.metadata).")
     except Exception as db_err:
         logger.error(f"Erreur lors de la création directe des tables : {str(db_err)}")
 
-    # 2. Synchronisation Alembic (sans bloquer le lancement en cas d'exception)
+    # 2. Creation securisee de l'utilisateur Admin par defaut
     try:
-        from alembic.config import Config
-        from alembic import command
-        alembic_cfg = Config("alembic.ini")
-        alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
-        command.upgrade(alembic_cfg, "head")
-        logger.info("Schema de base de donnees synchronise via Alembic.")
-    except Exception as e:
-        logger.warning(f"Alembic n'a pas pu s'exécuter (fallback direct actif) : {str(e)}")
+        import bcrypt
 
-    # 3. Création automatique de l'utilisateur Admin par défaut si absent (Hashage autonome)
-    try:
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        
-        db = SessionLocal()
-        admin_user = db.query(User).filter(User.username == settings.INIT_ADMIN_USERNAME).first()
-        if not admin_user:
-            hashed_pwd = pwd_context.hash(settings.INIT_ADMIN_PASSWORD)
-            new_admin = User(
-                username=settings.INIT_ADMIN_USERNAME,
-                email=settings.INIT_ADMIN_EMAIL,
-                hashed_password=hashed_pwd,
-                is_superuser=True,
-                is_active=True
-            )
-            db.add(new_admin)
-            db.commit()
-            logger.info(f"Compte administrateur initial '{settings.INIT_ADMIN_USERNAME}' créé avec succès.")
-        db.close()
+        with SessionLocal() as db:
+            admin_user = db.query(User).filter(User.username == settings.INIT_ADMIN_USERNAME).first()
+            if not admin_user:
+                pwd_bytes = settings.INIT_ADMIN_PASSWORD.encode("utf-8")
+                hashed_pwd = bcrypt.hashpw(pwd_bytes, bcrypt.gensalt()).decode("utf-8")
+                new_admin = User(
+                    username=settings.INIT_ADMIN_USERNAME,
+                    email=settings.INIT_ADMIN_EMAIL,
+                    hashed_password=hashed_pwd,
+                    is_superuser=True,
+                    is_active=True,
+                )
+                db.add(new_admin)
+                db.commit()
+                logger.info(f"Compte administrateur initial '{settings.INIT_ADMIN_USERNAME}' créé avec succès.")
     except Exception as admin_err:
         logger.warning(f"Impossible d'initialiser le compte admin par défaut : {str(admin_err)}")
 
-    # Seed initial admin user if configured
-    try:
-        from scripts.seed_admin import create_admin_user
-        create_admin_user()
-    except Exception as e:
-        logger.warning(f"Seed admin non executé: {e}")
-
+    # 3. File d'attente des paquets
     packet_queue: PacketQueueManager = PacketQueueManager(maxsize=5000)
     app.state.packet_queue = packet_queue
 
-    # Pools de threads dédiés (DB / iptables / TensorFlow) : ils sont libérés
-    # dans le finally du lifespan. L'app MCP montée ne recevant pas le scope
-    # lifespan, c'est le seul endroit fiable pour les arrêter.
+    # 4. Pools de threads dedies (DB / iptables / TensorFlow)
     prewarm_threadpools()
 
+    # 5. Moteurs de capture / traitement
     alert_manager = AlertManager(db_session_factory=SessionLocal)
     firewall_manager.block_failure_callback = alert_manager.process_new_alert
     processor = PacketProcessor(alert_callback=alert_manager.process_new_alert)
@@ -109,70 +96,44 @@ async def app_lifespan(app: FastAPI):
     app.state.sniffer_task = sniffer_task
     app.state.processor_task = processor_task
 
+    # 6. Module IA / RL (chargement non bloquant dans un thread)
     try:
-        from app.services.ai_decision_service import _load_rl_inference, AIDecisionService
+        from app.services.ai_decision_service import _load_rl_inference
         from app.api.endpoints.ai import _ai_service
-        app.state.rl_inference = _load_rl_inference()
+
+        app.state.rl_inference = await asyncio.to_thread(_load_rl_inference)
         app.state.ai_service = _ai_service
         if app.state.rl_inference and getattr(app.state.rl_inference, "is_trained", False):
-            source = "HuggingFace" if getattr(settings, "AI_HF_REPO_ID", None) else "local"
-            logger.info("Module RL precharge avec succes depuis %s.", source)
+            logger.info("Module RL precharge avec succes.")
         else:
             logger.warning("Module RL non entraîné, mode fallback manuel actif.")
-
-        if getattr(settings, "RL_MANUAL_MODE_LEARNING_ENABLED", False):
-            async def _background_train_loop():
-                while True:
-                    try:
-                        await asyncio.sleep(30)
-                        service = app.state.ai_service
-                        if service is not None:
-                            result = service.maybe_train()
-                            if result.get("status") == "trained":
-                                logger.info("Entrainement Humain en arriere-plan: %s", result)
-                    except asyncio.CancelledError:
-                        break
-                    except Exception as exc:
-                        logger.error("Erreur dans la boucle d'entrainement Humain: %s", exc)
-
-            app.state.background_train_task = asyncio.create_task(_background_train_loop())
-            logger.info("Apprentissage Humain en mode manuel active (entrainement en arriere-plan).")
     except Exception as exc:
         logger.warning("Module RL non disponible au demarrage: %s", exc)
         app.state.rl_inference = None
+        app.state.ai_service = None
 
     logger.info("Moteurs d'interception et d'analyse comportementale déployés avec succès.")
-    
+
     yield
 
     logger.info("--- FERMETURE DES SYSTÈMES DE SÉCURITÉ ---")
-    background_train_task = getattr(app.state, "background_train_task", None)
-    if background_train_task is not None:
-        background_train_task.cancel()
-        try:
-            await background_train_task
-        except asyncio.CancelledError:
-            pass
 
     await sniffer.stop_capture()
     processor.stop_processing()
 
     sniffer_task.cancel()
     processor_task.cancel()
-
     await asyncio.gather(sniffer_task, processor_task, return_exceptions=True)
 
-    # Arrêt des pools de threads dédiés (DB / iptables / TensorFlow).
     await shutdown_threadpools()
-
     logger.info("Ressources système libérées. Extinction complète de l'application.")
 
-# Initialisation de l'instance maîtresse de FastAPI
+# Initialisation de l'instance maitresse de FastAPI
 app = FastAPI(
     title=settings.APP_NAME,
     description="Cœur d'analyse, de détection et de prévention d'intrusions pour le réseau local de l'ULPGL.",
     version="2.0.0",
-    lifespan=app_lifespan
+    lifespan=app_lifespan,
 )
 app.state.limiter = limiter
 app.state.firewall_manager = firewall_manager
@@ -186,8 +147,7 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         headers={"Retry-After": retry_after},
     )
 
-# Configuration de la sécurité des partages de ressources (CORS) pour le Dashboard Front-End
-# Injectée depuis la configuration centralisée, avec validation stricte en production
+# Configuration CORS pour le Dashboard Front-End
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOWED_ORIGINS,
@@ -200,7 +160,7 @@ app.add_middleware(
 if settings.RATE_LIMIT_ENABLED:
     app.add_middleware(SlowAPIMiddleware)
 
-# Branchement des routeurs d'API modulaires (Routage explicite)
+# Branchement des routeurs d'API modulaires
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(alerts_router, prefix="/api/v1")
 app.include_router(email_config_router, prefix="/api/v1")
@@ -233,24 +193,21 @@ async def health_check(db: Session = Depends(get_db)):
         db_status = "disconnected"
         status = "unhealthy"
         nodes_count = 0
-    
+
     return {
         "status": status,
         "database": db_status,
         "system": "operational",
         "packet_queue": queue_metrics,
         "engine": engine_status,
-        "nodes": {
-            "active_count": nodes_count
-        }
+        "nodes": {"active_count": nodes_count},
     }
 
 if __name__ == "__main__":
-    # Point d'entrée de démarrage manuel pour le développement (ex: python -m app.main)
     import uvicorn
     uvicorn.run(
-        "app.main:app", 
-        host=settings.API_HOST, 
-        port=settings.API_PORT, 
-        reload=False  # Rechargement désactivé pour ne pas perturber les threads Scapy
+        "app.main:app",
+        host=settings.API_HOST,
+        port=settings.API_PORT,
+        reload=False,
     )
