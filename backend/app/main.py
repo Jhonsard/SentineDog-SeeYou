@@ -60,21 +60,28 @@ async def app_lifespan(app: FastAPI):
     try:
         import bcrypt
 
-        with SessionLocal() as db:
-            admin_user = db.query(User).filter(User.username == settings.INIT_ADMIN_USERNAME).first()
-            if not admin_user:
-                pwd_bytes = settings.INIT_ADMIN_PASSWORD.encode("utf-8")
-                hashed_pwd = bcrypt.hashpw(pwd_bytes, bcrypt.gensalt()).decode("utf-8")
-                new_admin = User(
-                    username=settings.INIT_ADMIN_USERNAME,
-                    email=settings.INIT_ADMIN_EMAIL,
-                    hashed_password=hashed_pwd,
-                    is_superuser=True,
-                    is_active=True,
-                )
-                db.add(new_admin)
-                db.commit()
-                logger.info(f"Compte administrateur initial '{settings.INIT_ADMIN_USERNAME}' créé avec succès.")
+        admin_username = os.environ.get("INIT_ADMIN_USERNAME") or os.environ.get("ADMIN_USERNAME")
+        admin_password = os.environ.get("INIT_ADMIN_PASSWORD") or os.environ.get("ADMIN_PASSWORD")
+        admin_email = os.environ.get("INIT_ADMIN_EMAIL") or os.environ.get("ADMIN_EMAIL")
+
+        if admin_username and admin_password:
+            with SessionLocal() as db:
+                admin_user = db.query(User).filter(User.username == admin_username).first()
+                if not admin_user:
+                    pwd_bytes = admin_password.encode("utf-8")
+                    hashed_pwd = bcrypt.hashpw(pwd_bytes, bcrypt.gensalt()).decode("utf-8")
+                    new_admin = User(
+                        username=admin_username,
+                        email=admin_email or f"{admin_username}@localhost",
+                        hashed_password=hashed_pwd,
+                        role="admin",
+                        is_active=True,
+                    )
+                    db.add(new_admin)
+                    db.commit()
+                    logger.info(f"Compte administrateur initial '{admin_username}' créé avec succès.")
+        else:
+            logger.info("Pas de configuration INIT_ADMIN_*/ADMIN_* : creation du compte admin ignoree.")
     except Exception as admin_err:
         logger.warning(f"Impossible d'initialiser le compte admin par défaut : {str(admin_err)}")
 
