@@ -52,7 +52,7 @@ export default function NodesManagement() {
   const fetchHierarchy = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.NODES.HIERARCHY, {
         method: "GET",
         headers: {
@@ -74,7 +74,7 @@ export default function NodesManagement() {
 
   const fetchAggregatedStats = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.NODES.STATS_AGGREGATED, {
         method: "GET",
         headers: {
@@ -94,7 +94,7 @@ export default function NodesManagement() {
   const checkAllNodes = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.NODES.CHECK_ALL, {
         method: "POST",
         headers: {
@@ -118,7 +118,7 @@ export default function NodesManagement() {
 
   const checkNodeStatus = async (nodeId: number) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.NODES.CHECK(nodeId), {
         method: "POST",
         headers: {

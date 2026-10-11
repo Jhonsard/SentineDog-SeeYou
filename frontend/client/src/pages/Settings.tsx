@@ -69,7 +69,7 @@ export default function Settings() {
   const fetchEmailConfig = async () => {
     setEmailStatus(prev => ({ ...prev, isLoading: true }));
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.EMAIL.CONFIG, {
         method: "GET",
         headers: {
@@ -98,7 +98,7 @@ export default function Settings() {
 
   const saveEmailConfig = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.EMAIL.CONFIG, {
         method: "POST",
         headers: {
@@ -129,7 +129,7 @@ export default function Settings() {
 
   const testEmailConfig = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt_token');
       const response = await fetch(API_ENDPOINTS.EMAIL.TEST, {
         method: "POST",
         headers: {
