@@ -144,7 +144,7 @@ async def app_lifespan(app: FastAPI):
     try:
         from app.services.ai_decision_service import _load_rl_inference, AIDecisionService
         from app.api.endpoints.ai import _ai_service
-        app.state.rl_inference = _load_rl_inference()
+        app.state.rl_inference = await asyncio.to_thread(_load_rl_inference)
         app.state.ai_service = _ai_service
         if app.state.rl_inference and getattr(app.state.rl_inference, "is_trained", False):
             source = "HuggingFace" if getattr(settings, "AI_HF_REPO_ID", None) else "local"

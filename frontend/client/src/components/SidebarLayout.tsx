@@ -20,7 +20,7 @@ import { useAI } from '../contexts/AIContext';
 import { API_ENDPOINTS } from '../config';
 
 export function SidebarLayout() {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const { 
     aiModeEnabled, 
     aiTrained: contextAiTrained, 
@@ -31,6 +31,8 @@ export function SidebarLayout() {
   } = useAI();
   const tokenRef = useRef(token);
   tokenRef.current = token;
+  const logoutRef = useRef(logout);
+  logoutRef.current = logout;
   
   // --- ÉTATS GLOBALISÉS ET SYNCHRONISÉS ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -150,7 +152,15 @@ export function SidebarLayout() {
       wsRef.current.onclose = (event) => {
         setWsConnected(false);
         clearInterval(heartbeatInterval);
-        
+
+        // 1008 = violation de politique : le backend a rejeté le jeton (expiré/invalide).
+        // Réessayer avec le même jeton ne peut pas aboutir, on termine la session.
+        if (event.code === 1008) {
+          toast.error("Session expirée : veuillez vous reconnecter.");
+          logoutRef.current();
+          return;
+        }
+
         if (isMonitoring && !event.wasClean) {
           toast.info("Lien réseau perdu. Tentative de reconnexion dans 5s...");
           reconnectTimeout = setTimeout(() => {

@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     SMTP_SENDER_EMAIL: Optional[str] = Field(default=None)
     ADMIN_EMAIL: Optional[str] = Field(default=None)
 
+    # Compte administrateur cree au demarrage : voir INIT_ADMIN_* plus bas.
+    # Alias historiques utilisés par le fichier .env des déploiements existants.
+    ADMIN_USERNAME: Optional[str] = Field(default=None)
+    ADMIN_PASSWORD: Optional[str] = Field(default=None)
+
     SECRET_KEY: str
     INIT_ADMIN_USERNAME: str = Field(default="admin", description="Compte administrateur de démarrage (bootstrap).")
     INIT_ADMIN_EMAIL: str = Field(default="admin@localhost", description="Email du compte administrateur de démarrage.")
