@@ -1,28 +1,27 @@
 import * as React from "react";
-import { useId } from "react";
 
 export interface SparklineProps {
   data: number[];
-  /** Stroke token color, e.g. "#4d8eff" or "var(--info)". */
+  /** Couleur de tracé ; par défaut la couleur de texte du thème. */
   color?: string;
   width?: number;
   height?: number;
   strokeWidth?: number;
-  /** Render the soft area fill beneath the line. */
+  /** Remplit l'aire sous la courbe avec la même couleur, en faible opacité. */
   fill?: boolean;
-  /** Render a pulsing marker on the most recent point. */
+  /** Affiche un marqueur statique sur le point le plus récent. */
   showDot?: boolean;
   className?: string;
 }
 
 /**
- * CyberObserve DS sparkline.
- * Pure, self-contained SVG — no inline style strings, no external deps.
- * Builds a smoothed polyline + optional gradient area + live edge dot.
+ * Sparkline SentineDog.
+ * SVG pur, sans dépendance : polyligne lissée, aire plate en faible opacité,
+ * marqueur statique. Aucune couleur hors charte, aucune animation.
  */
 export function Sparkline({
   data,
-  color = "#4d8eff",
+  color = "var(--foreground)",
   width = 120,
   height = 36,
   strokeWidth = 1.5,
@@ -30,10 +29,15 @@ export function Sparkline({
   showDot = true,
   className,
 }: SparklineProps) {
-  const gradId = useId();
-
   if (!data || data.length < 2) {
-    return <svg className={className} width={width} height={height} aria-hidden="true" />;
+    return (
+      <svg
+        className={className}
+        width={width}
+        height={height}
+        aria-hidden="true"
+      />
+    );
   }
 
   const min = Math.min(...data);
@@ -48,7 +52,7 @@ export function Sparkline({
     return [x, y] as const;
   });
 
-  // Smooth Catmull-Rom -> cubic bézier path for a polished telemetry curve.
+  // Courbe lissée Catmull-Rom -> bézier cubique.
   const linePath = points.reduce((acc, p, i) => {
     if (i === 0) return `M ${p[0].toFixed(2)} ${p[1].toFixed(2)}`;
     const [x0, y0] = points[i - 1];
@@ -68,16 +72,11 @@ export function Sparkline({
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
       role="img"
-      aria-label="trend sparkline"
+      aria-label="Tendance"
     >
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.32} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-
-      {fill && <path d={areaPath} fill={`url(#${gradId})`} stroke="none" />}
+      {fill && (
+        <path d={areaPath} fill={color} fillOpacity={0.12} stroke="none" />
+      )}
 
       <path
         d={linePath}
@@ -91,10 +90,7 @@ export function Sparkline({
 
       {showDot && (
         <>
-          <circle cx={lastX} cy={lastY} r={3.2} fill={color} opacity={0.25}>
-            <animate attributeName="r" values="2.4;5;2.4" dur="1.8s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.35;0;0.35" dur="1.8s" repeatCount="indefinite" />
-          </circle>
+          <circle cx={lastX} cy={lastY} r={3.2} fill={color} opacity={0.25} />
           <circle cx={lastX} cy={lastY} r={1.8} fill={color} />
         </>
       )}

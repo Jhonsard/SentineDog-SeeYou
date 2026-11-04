@@ -1,0 +1,6 @@
+# Maquette Figma Make : référence en lecture seule, jamais formatée ni commitée.
+SeeYou — Dashboard SOC/
+
+# Fichiers générés ou gérés par pnpm
+dist/
+pnpm-lock.yaml

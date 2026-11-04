@@ -1,82 +1,236 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { LayoutDashboard, ShieldX, RefreshCw, Activity, ShieldAlert, Gavel, Zap, Shield, Globe, Network, Server, Settings as SettingsIcon, Menu, X, User as UserIcon, Server as ServerIcon, Brain, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import MetricCardsGrid from './MetricCardsGrid';
-import { TrafficAttackChart } from './TrafficAttackChart';
-import { AlertFeed } from './AlertFeed';
-import { EngineHealthPanel } from './dashboard/EngineHealthPanel';
-import { NetworkTrafficView } from './dashboard/NetworkTrafficView';
-import { EndpointSecurityView } from './dashboard/EndpointSecurityView';
-import { Alert, AttackAverageData, SnifferStats } from './types';
-import BannedHosts from './BannedHosts';
-import ThreatIntel from '../pages/ThreatIntel';
-import NetworkLogs from '../pages/NetworkLogs';
-import Assets from '../pages/Assets';
-import Settings from '../pages/Settings';
-import UserProfile from '../pages/UserProfile';
-import NodesManagement from '../pages/NodesManagement';
-import { useAuth } from '../contexts/AuthContext';
-import { useAI } from '../contexts/AIContext';
-import { API_ENDPOINTS } from '../config';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import {
+  LayoutDashboard,
+  ShieldAlert,
+  ShieldX,
+  RefreshCw,
+  Gavel,
+  Globe,
+  Network,
+  Server,
+  Settings as SettingsIcon,
+  Menu,
+  ChevronRight,
+  FileText,
+  Monitor,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import MetricCardsGrid from "./MetricCardsGrid";
+import { TrafficAttackChart } from "./TrafficAttackChart";
+import { AlertFeed } from "./AlertFeed";
+import { EngineHealthPanel } from "./dashboard/EngineHealthPanel";
+import { RecentAlertsPanel } from "./dashboard/RecentAlertsPanel";
+import { AIPanel } from "./dashboard/AIPanel";
+import { NetworkTrafficView } from "./dashboard/NetworkTrafficView";
+import { EndpointSecurityView } from "./dashboard/EndpointSecurityView";
+import { Alert, AttackAverageData, SnifferStats } from "./types";
+import BannedHosts from "./BannedHosts";
+import Alerts from "../pages/Alerts";
+import Reports from "../pages/Reports";
+import ThreatIntel from "../pages/ThreatIntel";
+import LogsHub from "../pages/LogsHub";
+import AssetsHub from "../pages/AssetsHub";
+import Settings from "../pages/Settings";
+import UserProfile from "../pages/UserProfile";
+import { useAuth } from "../contexts/AuthContext";
+import { useAI } from "../contexts/AIContext";
+import { API_ENDPOINTS } from "../config";
 
-export function SidebarLayout() {
+type Tab =
+  | "dashboard"
+  | "alerts"
+  | "reports"
+  | "network"
+  | "endpoint"
+  | "blacklist"
+  | "threat-intel"
+  | "logs"
+  | "assets"
+  | "settings"
+  | "profile"
+  | "nodes";
+
+const PAGE_TITLES: Record<Tab, string> = {
+  dashboard: "Vue d'ensemble",
+  alerts: "Alertes",
+  reports: "Rapports",
+  network: "Réseau",
+  endpoint: "Terminaux",
+  logs: "Journaux",
+  blacklist: "Liste noire",
+  "threat-intel": "Threat intelligence",
+  assets: "Actifs",
+  settings: "Paramètres",
+  profile: "Profil",
+  nodes: "Nœuds",
+};
+
+// État d'apparence conservé entre deux rechargements.
+const SIDEBAR_KEY = "sidebar-open";
+const ACTIVE_TAB_KEY = "active-tab";
+const ROUTE_TABS: Tab[] = ["alerts", "reports", "logs", "nodes"];
+
+function getStoredSidebarOpen() {
+  try {
+    const stored = window.localStorage.getItem(SIDEBAR_KEY);
+    if (stored === "true") return true;
+    if (stored === "false") return false;
+  } catch {
+    // Stockage indisponible : repli sur l'état ouvert.
+  }
+  return true;
+}
+
+function getStoredTab(): Tab | null {
+  try {
+    const stored = window.localStorage.getItem(ACTIVE_TAB_KEY);
+    if (!stored || !(stored in PAGE_TITLES)) return null;
+    const tab = stored as Tab;
+    return ROUTE_TABS.includes(tab) ? null : tab;
+  } catch {
+    return null;
+  }
+}
+
+function formatSyncTime() {
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date());
+}
+
+interface SidebarNavItemProps {
+  label: string;
+  active: boolean;
+  collapsed: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}
+
+/**
+ * Entrée de navigation de la sidebar latérale, conforme à la maquette :
+ * pastille pleine (`bg-foreground text-background`) pour l'état actif (D7).
+ * Repliée sur desktop, l'icône reste seule ; le libellé passe en `sr-only`
+ * (toujours accessible), et reste visible dans le tiroir mobile.
+ */
+function SidebarNavItem({
+  label,
+  active,
+  collapsed,
+  onClick,
+  children,
+}: SidebarNavItemProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      title={collapsed ? label : undefined}
+      className={`flex w-full items-center gap-3 rounded-[4px] border px-[11px] py-2.5 text-left text-[13px] font-medium transition-colors ${
+        collapsed ? "justify-start md:justify-center" : ""
+      } ${
+        active
+          ? "border-transparent bg-foreground text-background"
+          : "border-transparent text-sidebar-foreground hover:border-sidebar-border hover:text-foreground"
+      }`}
+    >
+      {children}
+      <span className={collapsed ? "md:sr-only" : ""}>{label}</span>
+    </button>
+  );
+}
+
+interface SidebarLayoutProps {
+  initialTab?: Tab;
+}
+
+export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
   const { token, logout } = useAuth();
-  const { 
-    aiModeEnabled, 
-    aiTrained: contextAiTrained, 
-    isBusy: aiBusy, 
-    isLoading: aiLoading,
-    fetchStatus: loadAiStatus, 
-    toggleAiMode 
-  } = useAI();
+  const { fetchStatus: loadAiStatus } = useAI();
   const tokenRef = useRef(token);
   tokenRef.current = token;
   const logoutRef = useRef(logout);
   logoutRef.current = logout;
-  
+
   // --- ÉTATS GLOBALISÉS ET SYNCHRONISÉS ---
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] =
+    useState<boolean>(getStoredSidebarOpen);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [dashboardView, setDashboardView] = useState<"overview" | "network" | "endpoint">("overview");
-  const [currentTab, setCurrentTab] = useState<"dashboard" | "blacklist" | "threat-intel" | "network-logs" | "assets" | "settings" | "profile" | "nodes">("dashboard");
+  const [currentTab, setCurrentTab] = useState<Tab>(
+    () => initialTab ?? getStoredTab() ?? "dashboard",
+  );
+  const [lastSync, setLastSync] = useState<string | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [history, setHistory] = useState<AttackAverageData[]>([]);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [isMonitoring, setIsMonitoring] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [stats, setStats] = useState<SnifferStats>({
-    pps: 42500,
-    network_load: '780 Mbps',
+    pps: 0,
+    network_load: "0 Mbps",
     checksum_errors: 0,
-    total_alerts: 2842,
-    active_critical: 14,
-    blocked_hosts: 156,
-    avg_events_min: 12.8
+    total_alerts: 0,
+    active_critical: 0,
+    blocked_hosts: 0,
+    avg_events_min: 0,
   });
-  const [showBanModal, setShowBanModal] = useState<{ id: number; ip: string; reason: string } | null>(null);
+  const [showBanModal, setShowBanModal] = useState<{
+    id: number;
+    ip: string;
+    reason: string;
+  } | null>(null);
+
+  // Persiste l'état d'apparence : sidebar repliée et onglet actif.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_KEY, String(isSidebarOpen));
+    } catch {
+      // Stockage indisponible : état conservé en mémoire.
+    }
+  }, [isSidebarOpen]);
+
+  useEffect(() => {
+    if (ROUTE_TABS.includes(currentTab)) return;
+    try {
+      window.localStorage.setItem(ACTIVE_TAB_KEY, currentTab);
+    } catch {
+      // Stockage indisponible : état conservé en mémoire.
+    }
+  }, [currentTab]);
 
   // --- CHARGEMENT INITIAL DE L'HISTORIQUE PERMANENT ---
   useEffect(() => {
     const fetchAlertsHistory = async () => {
       if (!token) return;
-      
+
       try {
-        const response = await fetch(`${API_ENDPOINTS.ALERTS.HISTORY}?limit=100`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        });
+        const response = await fetch(
+          `${API_ENDPOINTS.ALERTS.HISTORY}?limit=100`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
 
         if (response.ok) {
           const data = await response.json();
           setAlerts(data);
+          setLastSync(formatSyncTime());
         } else {
-          console.error("Échec de synchronisation avec l'historique permanent de la BDD.");
+          console.error(
+            "Échec de synchronisation avec l'historique permanent de la BDD.",
+          );
         }
       } catch (error) {
-        console.error("Erreur réseau lors du chargement de l'historique permanent:", error);
+        console.error(
+          "Erreur réseau lors du chargement de l'historique permanent:",
+          error,
+        );
       }
     };
 
@@ -90,22 +244,12 @@ export function SidebarLayout() {
         const res = await fetch(API_ENDPOINTS.ALERTS.STATS_HISTORY);
         if (res.ok) {
           const data = await res.json();
-          // Adapter le format de données si nécessaire
           const adaptedData = data.map((item: any) => ({
             time: item.time,
-            normal_count: 0, // À adapter selon le backend
-            attack_count: item["Moyenne d'Attaques"] || 0
+            normal_count: 0,
+            attack_count: item["Moyenne d'Attaques"] || 0,
           }));
           setHistory(adaptedData);
-        } else {
-          // Injection de données mockées fidèles à l'historique du SOC de l'ULPGL
-          setHistory([
-            { time: "09:00", normal_count: 45, attack_count: 5 },
-            { time: "09:05", normal_count: 55, attack_count: 12 },
-            { time: "09:10", normal_count: 48, attack_count: 8 },
-            { time: "09:15", normal_count: 62, attack_count: 22 },
-            { time: "09:20", normal_count: 50, attack_count: 15 },
-          ]);
         }
       } catch (e) {
         console.error("Failed to fetch history", e);
@@ -142,27 +286,29 @@ export function SidebarLayout() {
 
       wsRef.current.onmessage = (event) => {
         if (event.data === "pong") return;
-        
+
         try {
           const newAlert: Alert = JSON.parse(event.data);
-          
+
           // Utilisation d'une mise à jour fonctionnelle pure
           setAlerts((prevAlerts) => {
-            const exists = prevAlerts.some(alt => alt.id === newAlert.id);
+            const exists = prevAlerts.some((alt) => alt.id === newAlert.id);
             if (exists) return prevAlerts;
-            
+
             // On limite à 100 éléments au premier plan pour maintenir les performances fluides
             return [newAlert, ...prevAlerts].slice(0, 100);
           });
-          
+
           // Mise à jour incrémentale des indicateurs de charge réseau
-          setStats(prev => ({
+          setStats((prev) => ({
             ...prev,
             total_alerts: prev.total_alerts + 1,
-            active_critical: newAlert.severity === 'critique' || newAlert.severity === 'tres_critique' 
-              ? prev.active_critical + 1 
-              : prev.active_critical,
-            pps: (newAlert as any).pps || prev.pps
+            active_critical:
+              newAlert.severity === "critique" ||
+              newAlert.severity === "tres_critique"
+                ? prev.active_critical + 1
+                : prev.active_critical,
+            pps: (newAlert as any).pps || prev.pps,
           }));
         } catch (e) {
           console.error("Erreur de parsing du paquet WebSocket:", e);
@@ -207,55 +353,73 @@ export function SidebarLayout() {
   }, [isMonitoring, token]);
 
   // --- ACTIONNEUR AUTOMATISÉ IPS MÉMOÏSÉ ---
-  const handleValidateBlock = useCallback(async (alertId: number, sourceIp: string) => {
-    if (!token) {
-      toast.error("Opération refusée : session administrateur manquante.");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_ENDPOINTS.ALERTS.VALIDATE_BLOCK(alertId)}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(`Succès IPS : ${data.message}`);
-        setAlerts((prevAlerts) =>
-          prevAlerts.map((alt) =>
-            alt.id === alertId 
-              ? { ...alt, is_blocked: true, validated_by_admin: true, is_manual_block: true } 
-              : alt
-          )
-        );
-        setStats(prev => ({ ...prev, blocked_hosts: prev.blocked_hosts + 1 }));
-      } else {
-        toast.error(`Erreur IPS : ${data.detail || "Le pare-feu a rejeté la commande."}`);
+  const handleValidateBlock = useCallback(
+    async (alertId: number, sourceIp: string) => {
+      if (!token) {
+        toast.error("Opération refusée : session administrateur manquante.");
+        return;
       }
-    } catch (error) {
-      toast.error("Échec critique : le contrôleur de filtrage est injoignable.");
-    }
-  }, [token]);
+
+      try {
+        const response = await fetch(
+          `${API_ENDPOINTS.ALERTS.VALIDATE_BLOCK(alertId)}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          toast.success(`Succès IPS : ${data.message}`);
+          setAlerts((prevAlerts) =>
+            prevAlerts.map((alt) =>
+              alt.id === alertId
+                ? {
+                    ...alt,
+                    is_blocked: true,
+                    validated_by_admin: true,
+                    is_manual_block: true,
+                  }
+                : alt,
+            ),
+          );
+          setStats((prev) => ({
+            ...prev,
+            blocked_hosts: prev.blocked_hosts + 1,
+          }));
+        } else {
+          toast.error(
+            `Erreur IPS : ${data.detail || "Le pare-feu a rejeté la commande."}`,
+          );
+        }
+      } catch (error) {
+        toast.error(
+          "Échec critique : le contrôleur de filtrage est injoignable.",
+        );
+      }
+    },
+    [token],
+  );
 
   // --- HANDLERS ACTIONS DIRECTES SUR LE PARE-FEU RUTA (KERNEL INTERFACE) ---
   const handleOpenBanModal = async (alertId: number, ip: string) => {
     // Recherche du contexte du paquet pour documenter la justification du ban
-    const targetAlert = alerts.find(a => a.id === alertId);
-    const reason = targetAlert 
+    const targetAlert = alerts.find((a) => a.id === alertId);
+    const reason = targetAlert
       ? `Interception d'une anomalie de type [${targetAlert.alert_type}] sur le protocole ${targetAlert.protocol}.`
       : "Activité malveillante répétée détectée par le moteur intelligent Snort.";
-    
+
     setShowBanModal({ id: alertId, ip, reason });
   };
 
   const confirmBanHost = async () => {
     if (!showBanModal) return;
-    
+
     // Utiliser le handler centralisé de validation de blocage
     await handleValidateBlock(showBanModal.id, showBanModal.ip);
     setShowBanModal(null);
@@ -273,7 +437,8 @@ export function SidebarLayout() {
         if (Array.isArray(data)) {
           const total = data.length;
           const critical = data.filter(
-            (a: any) => a.severity === "critique" || a.severity === "tres_critique"
+            (a: any) =>
+              a.severity === "critique" || a.severity === "tres_critique",
           ).length;
           const blocked = data.filter((a: any) => a.is_blocked).length;
           setStats((prev) => ({
@@ -283,6 +448,7 @@ export function SidebarLayout() {
             blocked_hosts: blocked || prev.blocked_hosts,
           }));
         }
+        setLastSync(formatSyncTime());
       }
     } catch (error) {
       console.error("Échec du rafraîchissement des widgets:", error);
@@ -298,288 +464,344 @@ export function SidebarLayout() {
     }
   }, [loadAiStatus, token]);
 
-  const handleToggleSidebar = () => {
-    if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
-      setIsSidebarOpen((v) => !v);
-    } else {
-      setIsMobileOpen(false);
+  const selectTab = (tab: Tab) => {
+    setCurrentTab(tab);
+    setIsMobileOpen(false);
+
+    // /alerts est un vrai point d'entrée. On synchronise l'URL sans remonter
+    // le shell : un remontage couperait le WebSocket et perdrait l'état
+    // Start/Stop. Les autres onglets restent sous "/".
+    if (typeof window !== "undefined") {
+      const target =
+        tab === "alerts"
+          ? "/alerts"
+          : tab === "reports"
+            ? "/reports"
+            : tab === "logs"
+              ? "/logs"
+              : tab === "nodes"
+                ? "/nodes"
+                : "/";
+      if (window.location.pathname !== target) {
+        window.history.replaceState({}, "", target);
+      }
     }
   };
 
-  const selectTab = (tab: Parameters<typeof setCurrentTab>[0]) => {
-    setCurrentTab(tab);
-    setIsMobileOpen(false);
-  };
+  // Navigation alignée sur la maquette. « Rapports » n'y figure pas :
+  // la page est accessible depuis la page Journaux.
+  const NAV_GROUPS: {
+    title: string;
+    items: {
+      key: Tab;
+      label: string;
+      Icon: React.ComponentType<{ className?: string }>;
+    }[];
+  }[] = [
+    {
+      title: "Surveillance",
+      items: [
+        { key: "dashboard", label: "Vue d'ensemble", Icon: LayoutDashboard },
+        { key: "alerts", label: "Alertes", Icon: ShieldAlert },
+        { key: "network", label: "Réseau", Icon: Network },
+        { key: "logs", label: "Journaux", Icon: FileText },
+      ],
+    },
+    {
+      title: "Protection",
+      items: [
+        { key: "blacklist", label: "Liste noire", Icon: ShieldX },
+        { key: "threat-intel", label: "Threat intelligence", Icon: Globe },
+        { key: "assets", label: "Actifs", Icon: Server },
+        { key: "endpoint", label: "Terminaux", Icon: Monitor },
+      ],
+    },
+    {
+      title: "Administration",
+      items: [{ key: "settings", label: "Paramètres", Icon: SettingsIcon }],
+    },
+  ];
 
   return (
-    <div className="flex min-h-screen bg-void text-[#e1e2ec] antialiased grid-bg">
-      
-      {/* ================= BARRE LATÉRALE DE GAUCHE : IDENTITÉ ULPGL SOC ================= */}
+    <div className="flex min-h-screen bg-background text-foreground antialiased">
       {/* Overlay mobile (ferme le tiroir au clic) */}
       {isMobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+        <button
+          type="button"
+          aria-label="Fermer la navigation"
+          className="fixed inset-0 z-40 bg-black/45 md:hidden"
           onClick={() => setIsMobileOpen(false)}
-          aria-hidden="true"
         />
       )}
 
-      <aside className={`border-r border-[#1d2027] bg-[#0c0e12] flex flex-col justify-between shrink-0 font-mono transition-all duration-300 fixed inset-y-0 left-0 z-50 w-64 px-4 py-6 lg:static lg:z-auto lg:translate-x-0 overflow-y-auto ${
-        isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-      } ${
-        isSidebarOpen ? 'lg:w-64 lg:px-4' : 'lg:w-16 lg:px-2'
-      }`}>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-2.5">
-              <img src="/Seeyou.webp" alt="SeeYou" className="h-7 w-7 shrink-0 rounded-sm object-cover ring-1 ring-[#1d2027]" />
-              {isSidebarOpen && (
-                <span className="text-xs font-bold tracking-widest text-[#e1e2ec] uppercase">SeeYou</span>
-              )}
-            </div>
-            <button
-              onClick={handleToggleSidebar}
-              aria-label="Basculer la navigation"
-              className="flex items-center justify-center p-1 rounded-sm transition-all hover:bg-[#1d2027] text-[#c2c6d6]"
-            >
-              {isSidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </button>
+      {/* ================= BARRE LATÉRALE : MAQUETTE 248 PX ================= */}
+      <aside
+        id="navigation-principale"
+        aria-label="Navigation principale"
+        className={`fixed inset-y-0 left-0 z-50 flex w-[248px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 motion-reduce:transition-none md:static md:z-auto md:translate-x-0 ${
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        } ${isSidebarOpen ? "md:w-[248px]" : "md:w-[68px]"}`}
+      >
+        {/* Marque */}
+        <div
+          className={`flex h-[74px] shrink-0 items-center border-b border-sidebar-border px-5 ${
+            isSidebarOpen
+              ? "gap-3"
+              : "gap-1 md:flex-col md:justify-center md:gap-0.5 md:px-0"
+          }`}
+        >
+          <img
+            src="/Seeyou.webp"
+            alt="SeeYou"
+            className="h-[38px] w-[38px] shrink-0 rounded-[4px] border border-sidebar-border object-cover"
+          />
+          <div
+            className={`flex min-w-0 flex-1 flex-col gap-px ${
+              isSidebarOpen ? "" : "md:hidden"
+            }`}
+          >
+            <strong className="truncate text-base font-semibold leading-tight">
+              SeeYou
+            </strong>
+            <span className="text-[9px] font-semibold tracking-[0.14em]">
+              SENTINEDOG SOC
+            </span>
           </div>
-
-          <nav className="space-y-1">
-            <button
-              onClick={() => { selectTab("dashboard"); setDashboardView("overview"); }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
-                currentTab === "dashboard"
-                  ? "bg-[#4d8eff]/10 text-[#4d8eff] border border-[#4d8eff]/20"
-                  : "text-[#c2c6d6] hover:bg-[#1d2027] hover:text-white border border-transparent"
-              }`}
-            >
-              <Activity className="h-4 w-4 shrink-0" />
-              {isSidebarOpen && <span>Console Principale (SOC)</span>}
-            </button>
-
-            <button
-              onClick={() => selectTab("threat-intel")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
-                currentTab === "threat-intel"
-                  ? "bg-[#f97316]/10 text-[#f97316] border border-[#f97316]/20"
-                  : "text-[#c2c6d6] hover:bg-[#1d2027] hover:text-white border border-transparent"
-              }`}
-            >
-              <Globe className="h-4 w-4 shrink-0" />
-              {isSidebarOpen && <span>Threat Intel</span>}
-            </button>
-
-            <button
-              onClick={() => selectTab("network-logs")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
-                currentTab === "network-logs"
-                  ? "bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20"
-                  : "text-[#c2c6d6] hover:bg-[#1d2027] hover:text-white border border-transparent"
-              }`}
-            >
-              <Network className="h-4 w-4 shrink-0" />
-              {isSidebarOpen && <span>Network Logs</span>}
-            </button>
-
-            <button
-              onClick={() => selectTab("assets")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
-                currentTab === "assets"
-                  ? "bg-[#06b6d4]/10 text-[#06b6d4] border border-[#06b6d4]/20"
-                  : "text-[#c2c6d6] hover:bg-[#1d2027] hover:text-white border border-transparent"
-              }`}
-            >
-              <Server className="h-4 w-4 shrink-0" />
-              {isSidebarOpen && <span>Assets</span>}
-            </button>
-
-            <button
-              onClick={() => selectTab("blacklist")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
-                currentTab === "blacklist"
-                  ? "bg-[#ffb4ab]/10 text-[#ffb4ab] border border-[#ffb4ab]/20"
-                  : "text-[#c2c6d6] hover:bg-[#1d2027] hover:text-white border border-transparent"
-              }`}
-            >
-              <ShieldX className="h-4 w-4 shrink-0" />
-              {isSidebarOpen && <span>Hôtes Bloqués (Kernel)</span>}
-            </button>
-
-            <button
-              onClick={() => selectTab("profile")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
-                currentTab === "profile"
-                  ? "bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20"
-                  : "text-[#c2c6d6] hover:bg-[#1d2027] hover:text-white border border-transparent"
-              }`}
-            >
-              <UserIcon className="h-4 w-4 shrink-0" />
-              {isSidebarOpen && <span>Profile</span>}
-            </button>
-
-            <button
-              onClick={() => selectTab("nodes")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
-                currentTab === "nodes"
-                  ? "bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20"
-                  : "text-[#c2c6d6] hover:bg-[#1d2027] hover:text-white border border-transparent"
-              }`}
-            >
-              <ServerIcon className="h-4 w-4 shrink-0" />
-              {isSidebarOpen && <span>Nodes Management</span>}
-            </button>
-
-            <button
-              onClick={() => selectTab("settings")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-medium transition-all ${
-                currentTab === "settings"
-                  ? "bg-[#a855f7]/10 text-[#a855f7] border border-[#a855f7]/20"
-                  : "text-[#c2c6d6] hover:bg-[#1d2027] hover:text-white border border-transparent"
-              }`}
-            >
-              <SettingsIcon className="h-4 w-4 shrink-0" />
-              {isSidebarOpen && <span>Settings</span>}
-            </button>
-          </nav>
+          <button
+            type="button"
+            aria-label="Fermer la navigation"
+            onClick={() => setIsMobileOpen(false)}
+            className="grid h-8 w-8 place-items-center rounded-[4px] border border-sidebar-border md:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen((value) => !value)}
+            aria-label={
+              isSidebarOpen ? "Replier la navigation" : "Déplier la navigation"
+            }
+            aria-expanded={isSidebarOpen}
+            aria-controls="navigation-principale"
+            title={
+              isSidebarOpen ? "Replier la navigation" : "Déplier la navigation"
+            }
+            className={`hidden shrink-0 place-items-center rounded-[4px] border border-sidebar-border text-sidebar-foreground transition-colors hover:bg-background/60 md:grid ${
+              isSidebarOpen ? "h-8 w-8" : "h-6 w-6"
+            }`}
+          >
+            {isSidebarOpen ? (
+              <X className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Menu className="h-4 w-4" aria-hidden="true" />
+            )}
+          </button>
         </div>
 
-        <div className="border-t border-[#1d2027] pt-4 px-2">
-          {isSidebarOpen && (
-            <div className="text-[10px] text-[#8c909f]">
-              Système de Prévention Intelligente
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-5">
+          {NAV_GROUPS.map((group, index) => (
+            <div key={group.title} className={index > 0 ? "mt-7" : ""}>
+              <p
+                className={`mb-2 px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                  isSidebarOpen ? "" : "md:hidden"
+                }`}
+              >
+                {group.title}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => (
+                  <SidebarNavItem
+                    key={item.key}
+                    label={item.label}
+                    active={
+                      item.key === "assets"
+                        ? currentTab === "assets" || currentTab === "nodes"
+                        : item.key === "logs"
+                          ? currentTab === "logs" || currentTab === "reports"
+                          : currentTab === item.key
+                    }
+                    collapsed={!isSidebarOpen}
+                    onClick={() => selectTab(item.key)}
+                  >
+                    <item.Icon className="h-[18px] w-[18px] shrink-0" />
+                  </SidebarNavItem>
+                ))}
+              </div>
             </div>
-          )}
+          ))}
+        </nav>
+
+        {/* Carte utilisateur */}
+        <div className="mt-auto border-t border-sidebar-border p-3">
+          <button
+            type="button"
+            onClick={() => selectTab("profile")}
+            aria-label="Consulter le profil"
+            title={isSidebarOpen ? undefined : "Profil"}
+            className={`grid w-full items-center gap-2.5 rounded-[4px] px-1 py-2 text-left transition-colors hover:bg-background/60 ${
+              isSidebarOpen
+                ? "grid-cols-[auto_1fr_auto]"
+                : "grid-cols-[auto_1fr_auto] md:grid-cols-1 md:justify-items-center"
+            }`}
+          >
+            <span className="grid h-[34px] w-[34px] place-items-center rounded-full border border-sidebar-border bg-background text-[11px] font-bold text-foreground">
+              AS
+            </span>
+            <span
+              className={`flex min-w-0 flex-col ${
+                isSidebarOpen ? "" : "md:hidden"
+              }`}
+            >
+              <strong className="truncate text-xs">Admin SOC</strong>
+              <span className="truncate text-[10px]">ULPGL Goma</span>
+            </span>
+            <ChevronRight
+              className={`h-4 w-4 ${isSidebarOpen ? "" : "md:hidden"}`}
+              aria-hidden="true"
+            />
+          </button>
         </div>
       </aside>
 
-      {/* ================= CONTENEUR CENTRAL & FLUX DASHBOARD ================= */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        
-        {/* TOPBAR — glassmorphic, mission-control header */}
-        <header className="glass flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-edge px-3 sm:px-6 py-3 shrink-0">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      {/* ================= CONTENEUR CENTRAL ================= */}
+      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Topbar 74 px */}
+        <header className="flex h-[74px] shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-4 lg:px-[30px]">
+          <div className="flex min-w-0 items-center gap-3">
             <button
-              onClick={() => setIsMobileOpen(true)}
+              type="button"
               aria-label="Ouvrir la navigation"
-              className="lg:hidden flex items-center justify-center p-1.5 rounded-sm text-[#c2c6d6] hover:bg-[#1d2027] transition-colors shrink-0"
+              onClick={() => setIsMobileOpen(true)}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border border-border bg-background text-foreground md:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-xs sm:text-sm font-ui font-bold tracking-wide text-[#e1e2ec] truncate">MONITEUR GLOBAL DU SYSTÈME</h1>
-            <div className="hidden md:block h-4 w-px bg-edge"></div>
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-secure font-data-mono whitespace-nowrap">
-              <span className={`h-1.5 w-1.5 rounded-full ${wsConnected ? "bg-secure animate-pulse" : "bg-zinc-600"}`} />
-              Pipeline Live : {wsConnected ? "STREAMING ACTIF" : "IDLE"}
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold tracking-[-0.02em]">
+                {PAGE_TITLES[currentTab]}
+              </h1>
+              <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
+                Centre des opérations de sécurité · ULPGL Goma
+              </p>
             </div>
           </div>
-          
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 font-data-mono text-[11px] text-[#c2c6d6]">
-            <div className="hidden xl:block">PPS: <span className="text-info-soft font-bold">{stats.pps.toLocaleString()}</span></div>
-            <div className="hidden xl:block">CHARGE: <span className="text-info-soft font-bold">{stats.network_load}</span></div>
 
-{/* AGENT IA — statut live + bascule rapide */}
+          <div className="flex shrink-0 items-center gap-2.5">
+            <span className="hidden items-center gap-1.5 text-[11px] font-semibold sm:inline-flex">
+              <span
+                aria-hidden="true"
+                className={`h-[7px] w-[7px] rounded-full border border-current ${
+                  wsConnected
+                    ? "bg-foreground text-foreground"
+                    : "bg-muted-foreground text-muted-foreground"
+                }`}
+              />
+              {wsConnected ? "Systèmes opérationnels" : "Flux interrompu"}
+            </span>
             <button
-              onClick={() => toggleAiMode()}
-              disabled={aiBusy || aiLoading}
-              title="Activer / désactiver le mode Agent IA"
-              className="flex items-center gap-2 rounded-md border border-edge bg-surface-2/60 px-2.5 py-1.5 font-data-mono text-[11px] text-[#c2c6d6] transition-colors hover:border-info/40 hover:text-info-soft disabled:opacity-60"
+              type="button"
+              onClick={() => selectTab("profile")}
+              aria-label="Consulter le profil"
+              className="grid h-9 w-9 place-items-center rounded-full border border-border bg-background text-[11px] font-bold text-foreground transition-colors hover:bg-muted"
             >
-              <Brain className="h-3.5 w-3.5 text-purple-400" />
-              <span className="hidden sm:inline">Agent IA</span>
-              <span className={`h-2 w-2 rounded-full ${aiModeEnabled ? (contextAiTrained ? "bg-secure animate-pulse" : "bg-warning") : "bg-zinc-600"}`} />
-              <span className={`hidden sm:inline ${aiModeEnabled ? "text-secure-soft font-bold" : "text-[#8c909f]"}`}>{aiModeEnabled ? "ACTIF" : "INACTIF"}</span>
-              {aiBusy && <Loader2 className="h-3 w-3 animate-spin" />}
+              AS
             </button>
-
-            {/* MOTEUR D'INTERCEPTION */}
-            <div className="flex gap-2 sm:gap-3 sm:ml-4">
-              <button 
-                onClick={() => setIsMonitoring(true)} 
-                disabled={isMonitoring} 
-                className="bg-secure hover:bg-secure/85 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-xs font-sans font-medium px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5"
-              >
-                <Zap className="h-3.5 w-3.5" /> Start Sniffer
-              </button>
-              <button 
-                onClick={() => setIsMonitoring(false)} 
-                disabled={!isMonitoring} 
-                className="bg-critical hover:bg-critical/85 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-xs font-sans font-medium px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5"
-              >
-                <Shield className="h-3.5 w-3.5" /> Stop Engine
-              </button>
-            </div>
           </div>
         </header>
 
-        {/* TOP SELECTION RIBBON — sub-dashboards (client-side, no route change) */}
-        {currentTab === "dashboard" && (
-          <nav className="flex items-center gap-1 border-b border-edge bg-surface-1/50 px-2 sm:px-4 py-2 shrink-0 overflow-x-auto whitespace-nowrap">
-            {([
-              { id: "overview", label: "Global Overview" },
-              { id: "network", label: "Network Traffic" },
-              { id: "endpoint", label: "Endpoint Security" },
-            ] as const).map((v) => (
-              <button
-                key={v.id}
-                onClick={() => setDashboardView(v.id)}
-                className={`font-ui text-xs font-medium px-3 py-1.5 rounded-sm transition-all ${
-                  dashboardView === v.id
-                    ? "bg-info/10 text-info-soft border border-info/30"
-                    : "text-[#8c909f] hover:text-[#e1e2ec] hover:bg-surface-2 border border-transparent"
-                }`}
-              >
-                {v.label}
-              </button>
-            ))}
-            <div className="ml-auto flex items-center gap-3 font-data-mono text-[10px] text-[#8c909f]">
-              <button
-                onClick={refreshWidgets}
-                disabled={refreshing}
-                className="flex items-center gap-1.5 rounded-md border border-edge bg-surface-2/60 px-2 py-1 text-[#c2c6d6] transition-colors hover:border-info/40 hover:text-info-soft disabled:opacity-60"
-                title="Rafraîchir les widgets"
-                aria-label="Rafraîchir les widgets"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              </button>
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-secure animate-pulse" />
-                ULPGL-GOMA
-              </span>
-            </div>
-          </nav>
-        )}
+        {/* Contenu */}
+        <main className="custom-scrollbar flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1500px]">
+            {currentTab === "alerts" ? (
+              <Alerts alerts={alerts} onValidateBlock={handleOpenBanModal} />
+            ) : currentTab === "reports" ? (
+              <Reports alerts={alerts} onBackToLogs={() => selectTab("logs")} />
+            ) : currentTab === "blacklist" ? (
+              <BannedHosts />
+            ) : currentTab === "threat-intel" ? (
+              <ThreatIntel />
+            ) : currentTab === "logs" ? (
+              <LogsHub onOpenReports={() => selectTab("reports")} />
+            ) : currentTab === "assets" ? (
+              <AssetsHub key="assets-hub" initialSection="assets" />
+            ) : currentTab === "profile" ? (
+              <UserProfile />
+            ) : currentTab === "nodes" ? (
+              <AssetsHub key="nodes-hub" initialSection="nodes" />
+            ) : currentTab === "settings" ? (
+              <Settings />
+            ) : currentTab === "network" ? (
+              <div className="p-4 sm:p-6 lg:px-[30px] lg:py-[28px]">
+                <NetworkTrafficView stats={stats} alerts={alerts} />
+              </div>
+            ) : currentTab === "endpoint" ? (
+              <div className="p-4 sm:p-6 lg:px-[30px] lg:py-[28px]">
+                <EndpointSecurityView />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 p-4 sm:gap-4 sm:p-6 lg:px-[30px] lg:py-[28px]">
+                {/* EN-TÊTE DE LA VUE D'ENSEMBLE */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                      Situation actuelle
+                    </p>
+                    <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                      Bonjour, équipe SOC
+                    </h2>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {lastSync
+                        ? `Dernière synchronisation à ${lastSync}`
+                        : "Synchronisation en attente"}{" "}
+                      ·{" "}
+                      {wsConnected
+                        ? "flux temps réel actif"
+                        : "flux temps réel inactif"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={refreshWidgets}
+                    disabled={refreshing}
+                    className="inline-flex items-center gap-2 self-start rounded-[4px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60 sm:self-auto"
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 ${refreshing ? "animate-spin motion-reduce:animate-none" : ""}`}
+                    />
+                    Rafraîchir
+                  </button>
+                </div>
 
-        {/* AFFICHAGE CONDITIONNEL DES ONGLETS */}
-        {currentTab === "blacklist" ? (
-            <BannedHosts />
-        ) : currentTab === "threat-intel" ? (
-            <ThreatIntel />
-        ) : currentTab === "network-logs" ? (
-            <NetworkLogs />
-        ) : currentTab === "assets" ? (
-            <Assets />
-        ) : currentTab === "profile" ? (
-            <UserProfile />
-        ) : currentTab === "nodes" ? (
-            <NodesManagement />
-        ) : currentTab === "settings" ? (
-            <Settings />
-        ) : (
-          <main className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col gap-3 sm:gap-4 custom-scrollbar">
-            {dashboardView === "overview" && (
-              <>
                 {/* GRILLE DES COMPOSANTS KPI CARD */}
-                <MetricCardsGrid stats={stats} />
+                <MetricCardsGrid stats={stats} wsConnected={wsConnected} />
 
                 {/* GRILLE DU MILIEU : TÉLÉMÉTRIE + MOTEUR SNORT */}
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-3 items-stretch">
-                  <div className="xl:col-span-2 flex flex-col">
+                <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3">
+                  <div className="flex flex-col xl:col-span-2">
                     <TrafficAttackChart />
                   </div>
-                  <div className="xl:col-span-1 flex flex-col">
-                    <EngineHealthPanel stats={stats} health={94} />
+                  <div className="flex flex-col xl:col-span-1">
+                    <EngineHealthPanel
+                      stats={stats}
+                      health={94}
+                      isMonitoring={isMonitoring}
+                      onStart={() => setIsMonitoring(true)}
+                      onStop={() => setIsMonitoring(false)}
+                    />
+                  </div>
+                </div>
+
+                {/* GRILLE BASSE : ALERTES RÉCENTES + AGENT IA (maquette) */}
+                <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3">
+                  <div className="flex flex-col xl:col-span-2">
+                    <RecentAlertsPanel
+                      alerts={alerts}
+                      onSeeAll={() => selectTab("alerts")}
+                    />
+                  </div>
+                  <div className="flex flex-col xl:col-span-1">
+                    <AIPanel />
                   </div>
                 </div>
 
@@ -589,42 +811,42 @@ export function SidebarLayout() {
                   wsConnected={wsConnected}
                   onValidateBlock={handleOpenBanModal}
                 />
-              </>
+              </div>
             )}
-
-            {dashboardView === "network" && <NetworkTrafficView />}
-            {dashboardView === "endpoint" && <EndpointSecurityView />}
-          </main>
-        )}
+          </div>
+        </main>
       </div>
 
       {/* ================= DIALOGUE / MODAL DE CONFIRMATION DE BAN RUTA ================= */}
       {showBanModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#10131a] border border-[#ffb4ab]/30 p-6 rounded-sm max-w-md w-full shadow-2xl font-mono">
-            <h3 className="text-sm font-bold text-[#ffb4ab] flex items-center gap-2 uppercase tracking-wider mb-4">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border p-6 rounded-md max-w-md w-full shadow-2xl font-mono">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-wider mb-4">
               <Gavel className="h-4 w-4" />
               Confirmation Règle Pare-Feu
             </h3>
-            <p className="text-xs text-[#c2c6d6] mb-4 leading-relaxed">
-              Vous allez injecter une règle restrictive définitive de type <span className="text-[#ffb4ab] font-bold">DROP</span> dans la configuration réseau de l'ULPGL pour bloquer l'hôte suivant :
+            <p className="text-xs text-secondary-foreground mb-4 leading-relaxed">
+              Vous allez injecter une règle restrictive définitive de type{" "}
+              <span className="text-foreground font-bold underline">DROP</span>{" "}
+              dans la configuration réseau de l'ULPGL pour bloquer l'hôte
+              suivant :
             </p>
-            <div className="bg-[#0c0e12] p-3 border border-[#1d2027] rounded-sm text-xs font-bold text-[#4d8eff] mb-4">
+            <div className="bg-background p-3 border border-border rounded-md text-xs font-bold text-foreground mb-4">
               IP CIBLE : {showBanModal.ip}
             </div>
-            <p className="text-[11px] text-[#8c909f] mb-4 italic">
+            <p className="text-[11px] text-muted-foreground mb-4 italic">
               {showBanModal.reason}
             </p>
             <div className="flex justify-end gap-3 text-xs font-sans font-semibold">
-              <button 
+              <button
                 onClick={() => setShowBanModal(null)}
-                className="px-4 py-2 bg-[#1d2027] text-[#e1e2ec] hover:bg-[#282d37] transition-colors rounded-sm"
+                className="px-4 py-2 bg-muted text-foreground hover:underline transition-colors rounded-md"
               >
                 Annuler
               </button>
-              <button 
+              <button
                 onClick={confirmBanHost}
-                className="px-4 py-2 bg-[#ba1a1a] text-white hover:bg-[#93000a] transition-colors rounded-sm font-bold uppercase tracking-wide"
+                className="px-4 py-2 bg-primary text-primary-foreground hover:opacity-90 transition-colors rounded-md font-bold uppercase tracking-wide"
               >
                 Bannir l'Hôte
               </button>
@@ -634,4 +856,4 @@ export function SidebarLayout() {
       )}
     </div>
   );
-} 
+}

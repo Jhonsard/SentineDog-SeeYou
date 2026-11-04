@@ -35,17 +35,17 @@ export interface WidgetProps {
 }
 
 const accentMap: Record<NonNullable<WidgetProps["accent"]>, string> = {
-  info: "bg-info/10 text-info-soft border-info/20",
-  critical: "bg-critical/10 text-critical-soft border-critical/30",
-  warning: "bg-warning/10 text-warning-soft border-warning/30",
-  secure: "bg-secure/10 text-secure-soft border-secure/30",
+  info: "bg-foreground/10 text-foreground border-foreground/20",
+  critical: "bg-foreground/10 text-foreground border-foreground/20",
+  warning: "bg-foreground/10 text-foreground border-foreground/20",
+  secure: "bg-foreground/10 text-foreground border-foreground/20",
 };
 
 /**
  * CyberObserve DS standardized widget shell.
  * Every telemetry module shares the same header contract:
  * [ Icon chip ] Title + subtitle ............ [ actions ] [ ⋮ menu ]
- * Glassmorphic header, 1px structural border, no heavy shadow.
+ * Flat panel background, 1px structural border, no heavy shadow.
  */
 export function Widget({
   title,
@@ -62,12 +62,11 @@ export function Widget({
   return (
     <section
       className={cn(
-        "flex flex-col rounded-md border border-edge bg-surface-1/70 backdrop-blur-sm",
-        "ring-1 ring-inset ring-white/[0.02]",
+        "flex flex-col rounded-md border border-border bg-card",
         className,
       )}
     >
-      <header className="glass flex items-center justify-between gap-3 rounded-t-md border-b border-edge px-4 py-3">
+      <header className="flex items-center justify-between gap-3 rounded-t-md border-b border-border bg-card px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
           {icon && (
             <span
@@ -80,11 +79,11 @@ export function Widget({
             </span>
           )}
           <div className="min-w-0">
-            <h3 className="font-ui truncate text-[13px] font-semibold leading-tight tracking-tight text-[#e1e2ec]">
+            <h3 className="font-ui truncate text-[13px] font-semibold leading-tight tracking-tight text-foreground">
               {title}
             </h3>
             {subtitle && (
-              <p className="font-data-mono truncate text-[10px] leading-tight text-[#8c909f]">
+              <p className="font-data-mono truncate text-[10px] leading-tight text-muted-foreground">
                 {subtitle}
               </p>
             )}
@@ -98,18 +97,18 @@ export function Widget({
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label="Widget actions"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-[#8c909f] transition-colors hover:border-edge hover:bg-surface-2 hover:text-[#e1e2ec]"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-44 border-edge bg-surface-2 font-ui text-xs text-[#c2c6d6]"
+                className="w-44 border-border bg-muted font-ui text-xs text-foreground"
               >
                 {menuItems && menuItems.length > 0 ? (
                   <>
-                    <DropdownMenuLabel className="font-data-mono text-[10px] uppercase tracking-widest text-[#8c909f]">
+                    <DropdownMenuLabel className="font-data-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                       Actions
                     </DropdownMenuLabel>
                     {menuItems.map((item) => (
@@ -119,7 +118,7 @@ export function Widget({
                         className={cn(
                           "cursor-pointer gap-2 font-ui",
                           item.destructive &&
-                            "text-critical-soft focus:bg-critical/10 focus:text-critical-soft",
+                            "text-foreground focus:bg-muted focus:text-foreground",
                         )}
                       >
                         {item.icon}
@@ -129,7 +128,7 @@ export function Widget({
                   </>
                 ) : (
                   <>
-                    <DropdownMenuLabel className="font-data-mono text-[10px] uppercase tracking-widest text-[#8c909f]">
+                    <DropdownMenuLabel className="font-data-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                       Actions
                     </DropdownMenuLabel>
                     <DropdownMenuItem className="cursor-pointer gap-2 font-ui">
@@ -138,7 +137,7 @@ export function Widget({
                     <DropdownMenuItem className="cursor-pointer gap-2 font-ui">
                       Refresh
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-edge" />
+                    <DropdownMenuSeparator className="bg-border" />
                     <DropdownMenuItem className="cursor-pointer gap-2 font-ui">
                       Configure
                     </DropdownMenuItem>

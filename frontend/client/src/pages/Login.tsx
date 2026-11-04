@@ -2,7 +2,13 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Lock, User } from "lucide-react";
 import { toast } from "sonner";
 import { API_ENDPOINTS } from "@/config";
@@ -35,7 +41,9 @@ export default function Login() {
         login(data.access_token);
         toast.success("Authentification réussie. Session opérateur ouverte.");
       } else {
-        toast.error(data.detail || "Identifiants d'administration non valides.");
+        toast.error(
+          data.detail || "Identifiants d'administration non valides.",
+        );
       }
     } catch (error) {
       toast.error("Échec de connexion avec le serveur d'authentification.");
@@ -46,39 +54,59 @@ export default function Login() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md border-border bg-card/60 backdrop-blur shadow-2xl">
+      <Card className="w-full max-w-md border-border bg-card rounded-xl shadow-none">
         <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-border bg-black">
-            <img src="/Seeyou.webp" alt="SeeYou" className="h-full w-full object-cover" />
+          <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-border bg-card">
+            <img
+              src="/Seeyou.webp"
+              alt="SeeYou"
+              className="h-full w-full object-cover"
+            />
           </div>
-          <CardTitle className="text-2xl font-mono tracking-tight">Console de Contrôle IDS/IPS</CardTitle>
-          <CardDescription>Entrez vos privilèges pour déverrouiller l'actionneur du pare-feu.</CardDescription>
+          <CardTitle className="text-2xl font-mono tracking-tight text-foreground">
+            Console de Contrôle IDS/IPS
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Entrez vos privilèges pour déverrouiller l'actionneur du pare-feu.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1 relative">
+              <label htmlFor="login-username" className="sr-only">
+                Nom d'utilisateur
+              </label>
               <User className="absolute left-3 top-9 h-4 w-4 text-muted-foreground" />
               <Input
+                id="login-username"
                 type="text"
                 placeholder="Nom d'utilisateur"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="pl-10 font-mono text-sm"
+                className="pl-10 font-mono text-sm bg-background border-border text-foreground"
                 required
               />
             </div>
             <div className="space-y-1 relative">
+              <label htmlFor="login-password" className="sr-only">
+                Mot de passe
+              </label>
               <Lock className="absolute left-3 top-9 h-4 w-4 text-muted-foreground" />
               <Input
+                id="login-password"
                 type="password"
                 placeholder="Mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 font-mono text-sm"
+                className="pl-10 font-mono text-sm bg-background border-border text-foreground"
                 required
               />
             </div>
-            <Button type="submit" className="w-full font-sans tracking-wide" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full font-sans tracking-wide"
+              disabled={isLoading}
+            >
               {isLoading ? "Vérification..." : "Ouvrir la session"}
             </Button>
           </form>

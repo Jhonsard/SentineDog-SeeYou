@@ -68,7 +68,9 @@
     if (value === undefined) return undefined;
 
     if (typeof value === "string") {
-      return value.length > 1000 ? value.slice(0, 1000) + "...[truncated]" : value;
+      return value.length > 1000
+        ? value.slice(0, 1000) + "...[truncated]"
+        : value;
     }
 
     if (typeof value !== "object") return value;
@@ -178,7 +180,7 @@
       getAttr("data-test") ||
       null;
 
-    var type = tag === "input" ? (getAttr("type") || "text") : null;
+    var type = tag === "input" ? getAttr("type") || "text" : null;
     var href = tag === "a" ? getAttr("href") || null : null;
 
     // a small, stable hint for agents (avoid building full CSS paths)
@@ -233,7 +235,8 @@
 
     if (isSensitiveField(el)) return { masked: true, length: v.length };
 
-    if (v.length > CONFIG.uiInputMaxLen) v = v.slice(0, CONFIG.uiInputMaxLen) + "…";
+    if (v.length > CONFIG.uiInputMaxLen)
+      v = v.slice(0, CONFIG.uiInputMaxLen) + "…";
     return v;
   }
 
@@ -262,7 +265,7 @@
           y: e.clientY,
         });
       },
-      true
+      true,
     );
 
     // Typing "commit" events
@@ -276,7 +279,7 @@
           value: getInputValueSafe(t),
         });
       },
-      true
+      true,
     );
 
     document.addEventListener(
@@ -286,7 +289,7 @@
         if (shouldIgnoreTarget(t)) return;
         logUiEvent("focusin", { target: describeElement(t) });
       },
-      true
+      true,
     );
 
     document.addEventListener(
@@ -299,7 +302,7 @@
           value: getInputValueSafe(t),
         });
       },
-      true
+      true,
     );
 
     // Enter/Escape are useful for form flows & modals
@@ -311,7 +314,7 @@
         if (shouldIgnoreTarget(t)) return;
         logUiEvent("keydown", { key: e.key, target: describeElement(t) });
       },
-      true
+      true,
     );
 
     // Form submissions
@@ -322,7 +325,7 @@
         if (shouldIgnoreTarget(t)) return;
         logUiEvent("submit", { target: describeElement(t) });
       },
-      true
+      true,
     );
 
     // Throttled scroll events
@@ -340,7 +343,7 @@
           viewportHeight: window.innerHeight,
         });
       },
-      { passive: true }
+      { passive: true },
     );
 
     // Navigation tracking for SPAs
@@ -456,9 +459,10 @@
     init = init || {};
     var startTime = Date.now();
     // Handle string, Request object, or URL object
-    var url = typeof input === "string"
-      ? input
-      : (input && (input.url || input.href || String(input))) || "";
+    var url =
+      typeof input === "string"
+        ? input
+        : (input && (input.url || input.href || String(input))) || "";
     var method = init.method || (input && input.method) || "GET";
 
     // Don't intercept internal requests
@@ -470,7 +474,9 @@
     var requestHeaders = {};
     try {
       if (init.headers) {
-        requestHeaders = Object.fromEntries(new Headers(init.headers).entries());
+        requestHeaders = Object.fromEntries(
+          new Headers(init.headers).entries(),
+        );
       }
     } catch (e) {
       requestHeaders = { _parseError: true };
@@ -494,7 +500,9 @@
       .then(function (response) {
         entry.duration = Date.now() - startTime;
 
-        var contentType = (response.headers.get("content-type") || "").toLowerCase();
+        var contentType = (
+          response.headers.get("content-type") || ""
+        ).toLowerCase();
         var contentLength = response.headers.get("content-length");
 
         entry.response = {
@@ -516,7 +524,8 @@
         }
 
         // Skip body capture for streaming responses (SSE, etc.) to avoid memory leaks
-        var isStreaming = contentType.indexOf("text/event-stream") !== -1 ||
+        var isStreaming =
+          contentType.indexOf("text/event-stream") !== -1 ||
           contentType.indexOf("application/stream") !== -1 ||
           contentType.indexOf("application/x-ndjson") !== -1;
         if (isStreaming) {
@@ -527,15 +536,20 @@
         }
 
         // Skip body capture for large responses to avoid memory issues
-        if (contentLength && parseInt(contentLength, 10) > CONFIG.maxBodyLength) {
-          entry.response.body = "[Response too large: " + contentLength + " bytes]";
+        if (
+          contentLength &&
+          parseInt(contentLength, 10) > CONFIG.maxBodyLength
+        ) {
+          entry.response.body =
+            "[Response too large: " + contentLength + " bytes]";
           store.networkRequests.push(entry);
           pruneBuffer(store.networkRequests, CONFIG.bufferSize.network);
           return response;
         }
 
         // Skip body capture for binary content types
-        var isBinary = contentType.indexOf("image/") !== -1 ||
+        var isBinary =
+          contentType.indexOf("image/") !== -1 ||
           contentType.indexOf("video/") !== -1 ||
           contentType.indexOf("audio/") !== -1 ||
           contentType.indexOf("application/octet-stream") !== -1 ||
@@ -558,7 +572,8 @@
             if (text.length <= CONFIG.maxBodyLength) {
               entry.response.body = sanitizeValue(tryParseJson(text));
             } else {
-              entry.response.body = text.slice(0, CONFIG.maxBodyLength) + "...[truncated]";
+              entry.response.body =
+                text.slice(0, CONFIG.maxBodyLength) + "...[truncated]";
             }
           })
           .catch(function () {
@@ -615,19 +630,25 @@
       xhr._seeyouDebugData.url.indexOf("/__seeyou_debug__/") !== 0
     ) {
       xhr._seeyouDebugData.startTime = Date.now();
-      xhr._seeyouDebugData.requestBody = body ? sanitizeValue(tryParseJson(body)) : null;
+      xhr._seeyouDebugData.requestBody = body
+        ? sanitizeValue(tryParseJson(body))
+        : null;
 
       xhr.addEventListener("load", function () {
-        var contentType = (xhr.getResponseHeader("content-type") || "").toLowerCase();
+        var contentType = (
+          xhr.getResponseHeader("content-type") || ""
+        ).toLowerCase();
         var responseBody = null;
 
         // Skip body capture for streaming responses
-        var isStreaming = contentType.indexOf("text/event-stream") !== -1 ||
+        var isStreaming =
+          contentType.indexOf("text/event-stream") !== -1 ||
           contentType.indexOf("application/stream") !== -1 ||
           contentType.indexOf("application/x-ndjson") !== -1;
 
         // Skip body capture for binary content types
-        var isBinary = contentType.indexOf("image/") !== -1 ||
+        var isBinary =
+          contentType.indexOf("image/") !== -1 ||
           contentType.indexOf("video/") !== -1 ||
           contentType.indexOf("audio/") !== -1 ||
           contentType.indexOf("application/octet-stream") !== -1 ||
@@ -643,7 +664,8 @@
           try {
             var text = xhr.responseText || "";
             if (text.length > CONFIG.maxBodyLength) {
-              responseBody = text.slice(0, CONFIG.maxBodyLength) + "...[truncated]";
+              responseBody =
+                text.slice(0, CONFIG.maxBodyLength) + "...[truncated]";
             } else {
               responseBody = sanitizeValue(tryParseJson(text));
             }
@@ -817,5 +839,7 @@
     forceReport: reportLogs,
   };
 
-  console.debug("[Seeyou] Debug collector initialized (no rrweb, UI events only)");
+  console.debug(
+    "[Seeyou] Debug collector initialized (no rrweb, UI events only)",
+  );
 })();

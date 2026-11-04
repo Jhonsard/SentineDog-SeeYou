@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -97,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkInactivity = () => {
       const now = Date.now();
       const inactiveTime = now - lastActivity;
-      
+
       if (inactiveTime >= INACTIVITY_TIMEOUT) {
         logout();
       }
@@ -112,25 +118,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!token) return;
 
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
+    const events = [
+      "mousedown",
+      "mousemove",
+      "keypress",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
+
     const handleActivity = () => {
       updateActivity();
     };
 
-    events.forEach(event => {
+    events.forEach((event) => {
       window.addEventListener(event, handleActivity);
     });
 
     return () => {
-      events.forEach(event => {
+      events.forEach((event) => {
         window.removeEventListener(event, handleActivity);
       });
     };
   }, [token]);
 
   return (
-    <AuthContext.Provider value={{ token, isAuthenticated: !!token, login, logout }}>
+    <AuthContext.Provider
+      value={{ token, isAuthenticated: !!token, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -138,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth doit être utilisé au sein d'un AuthProvider");
+  if (!context)
+    throw new Error("useAuth doit être utilisé au sein d'un AuthProvider");
   return context;
 }

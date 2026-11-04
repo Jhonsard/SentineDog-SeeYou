@@ -1,7 +1,8 @@
 import * as React from "react";
-import { Cpu, Gauge, ShieldCheck } from "lucide-react";
-import { Widget } from "./Widget";
+import { Cpu, Play, ShieldCheck, ShieldOff, Square } from "lucide-react";
+import { Panel } from "./Panel";
 import { StatusRing } from "./StatusRing";
+import { Button } from "@/components/ui/button";
 
 interface EngineHealthPanelProps {
   stats: {
@@ -10,77 +11,115 @@ interface EngineHealthPanelProps {
     checksum_errors: number;
   };
   health?: number;
+  /** Contrôles du moteur, déplacés de la topbar vers ce panneau (D8). */
+  isMonitoring?: boolean;
+  onStart?: () => void;
+  onStop?: () => void;
 }
 
-function Bar({ label, value, pct, color }: { label: string; value: string; pct: number; color: string }) {
+function StatRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between font-data-sans-serif text-[11px]">
-        <span className="text-[#c2c6d6]">{label}</span>
-        <span className="font-bold" style={{ color }}>
-          {value}
-        </span>
-      </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: color }}
-        />
-      </div>
+    <div className="flex items-center justify-between gap-3 border-t border-muted py-2.5">
+      <dt className="text-[10px] text-muted-foreground">{label}</dt>
+      <dd className="font-data-mono text-[10px] font-semibold text-foreground">
+        {value}
+      </dd>
     </div>
   );
 }
 
-export function EngineHealthPanel({ stats, health = 94 }: EngineHealthPanelProps) {
-  const ppsPct = Math.min(100, (stats.pps / 50000) * 100);
-  const loadPct = 78;
-  const errPct = stats.checksum_errors > 0 ? 15 : 0;
-
+/**
+ * Panneau « Moteur IPS » : état de protection, efficacité et métriques réelles.
+ * Les commandes Start/Stop restent fonctionnelles et sont regroupées ici.
+ */
+export function EngineHealthPanel({
+  stats,
+  health = 0,
+  isMonitoring = false,
+  onStart,
+  onStop,
+}: EngineHealthPanelProps) {
   return (
-    <Widget
-      title="Snort Engine Status"
-      subtitle="Live deep-packet inspection telemetry"
-      icon={<Cpu className="h-4 w-4" />}
-      accent="info"
-      menuItems={[{ label: "Restart engine" }, { label: "View ruleset" }]}
-    >
-      <div className="flex flex-col gap-5">
-        <div className="flex items-center gap-4 rounded-md border border-edge bg-surface-2/60 p-3">
-          <StatusRing
-            value={health}
-            size={104}
-            stroke={9}
-            color="#22c55e"
-            label="Healthy"
-            sublabel="Snort 3 / Scapy"
-          />
-          <div className="flex-1 space-y-1 font-data-sans-serif text-[11px]">
-            <div className="flex items-center gap-1.5 text-secure-soft">
-              <ShieldCheck className="h-3.5 w-3.5" /> All sensors nominal
-            </div>
-            <div className="text-[#8c909f]">
-              PPS <span className="text-info-soft">{stats.pps.toLocaleString()}</span>
-            </div>
-            <div className="text-[#8c909f]">
-              LOAD <span className="text-info-soft">{stats.network_load}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[#8c909f]">
-              <Gauge className="h-3.5 w-3.5" /> 0 dropped packets
-            </div>
+    <Panel className="flex flex-col">
+      <div className="flex items-center justify-between gap-4 border-b border-border px-[18px] py-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <Cpu className="h-4 w-4 text-foreground" aria-hidden="true" />
+            <h3 className="text-[13px] font-semibold text-foreground">
+              Moteur IPS
+            </h3>
           </div>
+          <p className="mt-0.5 pl-6 text-[11px] text-muted-foreground">
+            État de protection Snort
+          </p>
         </div>
-
-        <div className="space-y-4 font-sans-serif">
-          <Bar label="Processing (PPS)" value={`${ppsPct.toFixed(1)}%`} pct={ppsPct} color="#4d8eff" />
-          <Bar label="Network Load" value="78%" pct={loadPct} color="#adc6ff" />
-          <Bar
-            label="Checksum Errors"
-            value={String(stats.checksum_errors)}
-            pct={errPct}
-            color="#ff5a5a"
-          />
-        </div>
+        <span
+          className={
+            isMonitoring
+              ? "inline-flex items-center gap-1.5 rounded-md bg-foreground px-2 py-1.5 text-[11px] font-semibold text-background"
+              : "inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-[11px] font-semibold text-foreground"
+          }
+        >
+          {isMonitoring ? (
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+          ) : (
+            <ShieldOff className="h-3.5 w-3.5" aria-hidden="true" />
+          )}
+          {isMonitoring ? "Actif" : "À l'arrêt"}
+        </span>
       </div>
-    </Widget>
+
+      <div className="flex flex-1 flex-col items-center justify-center py-6">
+        <StatusRing
+          value={health}
+          size={150}
+          stroke={8}
+          strokeLinecap="square"
+          centerValue={`${Math.round(health)}%`}
+          label="Efficacité"
+        />
+      </div>
+
+      <dl className="px-[18px]">
+        <StatRow
+          label="Paquets / seconde"
+          value={stats.pps.toLocaleString("fr-FR")}
+        />
+        <StatRow label="Charge réseau" value={stats.network_load} />
+        <StatRow
+          label="Erreurs de checksum"
+          value={stats.checksum_errors.toLocaleString("fr-FR")}
+        />
+      </dl>
+
+      {(onStart || onStop) && (
+        <div className="grid gap-2 px-[18px] py-[18px]">
+          <Button
+            type="button"
+            onClick={onStart}
+            disabled={isMonitoring || !onStart}
+            className="w-full justify-between"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Play className="h-3.5 w-3.5" aria-hidden="true" />
+              Démarrer le sniffer
+            </span>
+            <span aria-hidden="true">→</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onStop}
+            disabled={!isMonitoring || !onStop}
+            className="w-full justify-between"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Square className="h-3.5 w-3.5" aria-hidden="true" />
+              Arrêter le moteur
+            </span>
+          </Button>
+        </div>
+      )}
+    </Panel>
   );
 }

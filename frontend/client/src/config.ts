@@ -4,9 +4,10 @@
 const isDev = import.meta.env.DEV;
 const rawBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-export const API_BASE_URL = isDev && (!rawBaseUrl || rawBaseUrl === "") 
-  ? ""  // URLs relatives pour passer par le proxy Vite (/api/v1/...)
-  : (rawBaseUrl || "https://seeyou-87vn.onrender.com");
+export const API_BASE_URL =
+  isDev && (!rawBaseUrl || rawBaseUrl === "")
+    ? "" // URLs relatives pour passer par le proxy Vite (/api/v1/...)
+    : rawBaseUrl || "https://seeyou-87vn.onrender.com";
 
 export const API_VERSION = "v1";
 
@@ -20,8 +21,10 @@ export const API_ENDPOINTS = {
   ALERTS: {
     HISTORY: `${API_BASE_URL}/api/${API_VERSION}/alerts/history`,
     BANNED_HOSTS: `${API_BASE_URL}/api/${API_VERSION}/alerts/banned-hosts`,
-    VALIDATE_BLOCK: (alertId: number) => `${API_BASE_URL}/api/${API_VERSION}/alerts/${alertId}/validate-block`,
-    UNBAN: (alertId: number) => `${API_BASE_URL}/api/${API_VERSION}/alerts/${alertId}/unban`,
+    VALIDATE_BLOCK: (alertId: number) =>
+      `${API_BASE_URL}/api/${API_VERSION}/alerts/${alertId}/validate-block`,
+    UNBAN: (alertId: number) =>
+      `${API_BASE_URL}/api/${API_VERSION}/alerts/${alertId}/unban`,
     STATS_HISTORY: `${API_BASE_URL}/api/${API_VERSION}/alerts/stats/history`,
   },
   EMAIL: {
@@ -32,17 +35,24 @@ export const API_ENDPOINTS = {
     HIERARCHY: `${API_BASE_URL}/api/${API_VERSION}/nodes/hierarchy`,
     STATS_AGGREGATED: `${API_BASE_URL}/api/${API_VERSION}/nodes/stats/aggregated`,
     CHECK_ALL: `${API_BASE_URL}/api/${API_VERSION}/nodes/check-all`,
-    CHECK: (nodeId: number) => `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}/check`,
+    CHECK: (nodeId: number) =>
+      `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}/check`,
     LIST: `${API_BASE_URL}/api/${API_VERSION}/nodes/nodes`,
     CREATE: `${API_BASE_URL}/api/${API_VERSION}/nodes/nodes`,
-    UPDATE: (nodeId: number) => `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}`,
-    DELETE: (nodeId: number) => `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}`,
-    MONITOR_START: (nodeId: number) => `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}/monitor/start`,
-    MONITOR_STOP: (nodeId: number) => `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}/monitor/stop`,
+    UPDATE: (nodeId: number) =>
+      `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}`,
+    DELETE: (nodeId: number) =>
+      `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}`,
+    MONITOR_START: (nodeId: number) =>
+      `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}/monitor/start`,
+    MONITOR_STOP: (nodeId: number) =>
+      `${API_BASE_URL}/api/${API_VERSION}/nodes/${nodeId}/monitor/stop`,
     CAMPUSES: `${API_BASE_URL}/api/${API_VERSION}/nodes/campuses`,
-    CAMPUS_DETAIL: (campusId: number) => `${API_BASE_URL}/api/${API_VERSION}/nodes/campuses/${campusId}`,
+    CAMPUS_DETAIL: (campusId: number) =>
+      `${API_BASE_URL}/api/${API_VERSION}/nodes/campuses/${campusId}`,
     DEPARTMENTS: `${API_BASE_URL}/api/${API_VERSION}/nodes/departments`,
-    DEPARTMENT_DETAIL: (deptId: number) => `${API_BASE_URL}/api/${API_VERSION}/nodes/departments/${deptId}`,
+    DEPARTMENT_DETAIL: (deptId: number) =>
+      `${API_BASE_URL}/api/${API_VERSION}/nodes/departments/${deptId}`,
   },
   AI: {
     DECIDE: `${API_BASE_URL}/api/${API_VERSION}/ai/decide`,
@@ -63,8 +73,10 @@ export const API_ENDPOINTS = {
         return `ws://localhost:3000/api/${API_VERSION}/alerts/ws/alerts`;
       }
       // En prod ou sans proxy : se connecter directement au backend
-      const host = (rawBaseUrl || "https://seeyou-87vn.onrender.com").replace("http://", "").replace("https://", "");
+      const host = (rawBaseUrl || "https://seeyou-87vn.onrender.com")
+        .replace("http://", "")
+        .replace("https://", "");
       return `wss://${host}/api/${API_VERSION}/alerts/ws/alerts`;
     })(),
   },
-} as const; 
+} as const;

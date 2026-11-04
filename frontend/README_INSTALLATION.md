@@ -3,32 +3,38 @@
 ## 📋 Contenu du projet
 
 Ce projet contient :
+
 - **Application Web** : Interface interactive de présentation (React + TypeScript + Tailwind CSS)
 - **Application Java** : Interface graphique Snort (Java Swing)
 
 ## 🚀 Démarrage rapide
 
 ### Prérequis
+
 - Node.js 18+ et npm
 - Java 17+ (pour l'application Java)
 - VS Code (recommandé)
 
 ### Étape 1 : Installation des dépendances
+
 ```bash
 npm install
 ```
 
 ### Étape 2 : Lancer le serveur de développement
+
 ```bash
 npm run dev
 ```
 
 ### Étape 3 : Ouvrir dans le navigateur
+
 Ouvrez `http://localhost:5173/` dans votre navigateur
 
 ## 🎨 Design
 
 L'application utilise un design **Cyberpunk** avec :
+
 - Couleurs : Vert néon (#00ff41), Cyan électrique (#00d4ff), Crimson rouge (#ff0055)
 - Thème sombre par défaut
 - Polices : Space Mono (titres), Roboto (corps)
@@ -49,6 +55,7 @@ java -cp . SnortGUI
 ```
 
 ### Composants Java
+
 - **Bouton gauche** : Démarrer la surveillance (Vert lime)
 - **Bouton droit** : Arrêter la surveillance (Crimson rouge)
 - **Bouton haut-droit** : Accès à l'IA (Cyan électrique)
@@ -101,6 +108,7 @@ snort_network_monitor/
 ## 📞 Support
 
 Pour toute question ou problème, consultez :
+
 - Documentation Manus : https://help.manus.im
 - Documentation React : https://react.dev
 - Documentation Tailwind : https://tailwindcss.com

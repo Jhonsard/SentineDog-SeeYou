@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +24,7 @@ export default function WelcomeAuth() {
     username: "",
     password: "",
     confirmPassword: "",
-    email: ""
+    email: "",
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -53,7 +59,7 @@ export default function WelcomeAuth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast.error("Please fix the errors in the form");
       return;
@@ -92,7 +98,7 @@ export default function WelcomeAuth() {
             username: formData.username,
             email: formData.email,
             password: formData.password,
-            role: "user"
+            role: "user",
           }),
         });
 
@@ -104,7 +110,7 @@ export default function WelcomeAuth() {
             username: "",
             password: "",
             confirmPassword: "",
-            email: ""
+            email: "",
           });
           setErrors({});
         } else {
@@ -122,43 +128,51 @@ export default function WelcomeAuth() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
     // Clear error for this field
     if (errors[e.target.name]) {
       setErrors({
         ...errors,
-        [e.target.name]: ""
+        [e.target.name]: "",
       });
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#090b0f] flex items-center justify-center p-4 font-sans-serif">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 font-ui">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-zinc-800 bg-black">
-              <img src="/Seeyou.webp" alt="SeeYou" className="h-full w-full object-cover" />
+          <div className="flex items-center justify-center gap-3 mb-5">
+            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-border bg-card">
+              <img
+                src="/Seeyou.webp"
+                alt="SeeYou"
+                className="h-full w-full object-cover"
+              />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">SeeYou</h1>
-          <p className="text-sm text-zinc-500">
-            {isLogin ? "Sign in to access the security dashboard" : "Create your account to get started"}
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-3">
+            SeeYou
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isLogin
+              ? "Sign in to access the security dashboard"
+              : "Create your account to get started"}
           </p>
         </div>
 
         {/* Auth Card */}
-        <Card className="bg-[#0c0e12] border-zinc-800">
+        <Card className="bg-card border-border rounded-xl shadow-none">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Lock className="h-5 w-5 text-[#4d8eff]" />
+            <CardTitle className="text-foreground flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" />
               {isLogin ? "Authentication" : "Create Account"}
             </CardTitle>
-            <CardDescription className="text-zinc-500">
-              {isLogin 
-                ? "Enter your credentials to access the system" 
+            <CardDescription className="text-muted-foreground">
+              {isLogin
+                ? "Enter your credentials to access the system"
                 : "Fill in your information to create an account"}
             </CardDescription>
           </CardHeader>
@@ -166,20 +180,25 @@ export default function WelcomeAuth() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Username */}
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-zinc-400 text-xs">Username</Label>
+                <Label
+                  htmlFor="username"
+                  className="text-secondary-foreground text-xs"
+                >
+                  Username
+                </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="username"
                     name="username"
                     type="text"
                     value={formData.username}
                     onChange={handleInputChange}
-                    className={`bg-zinc-900 border-zinc-900 text-white pl-10 ${errors.username ? 'border-red-500' : ''}`}
+                    className={`bg-background border-border text-foreground pl-10 ${errors.username ? "border-foreground border-dashed" : ""}`}
                   />
                 </div>
                 {errors.username && (
-                  <p className="text-red-500 text-xs flex items-center gap-1">
+                  <p className="text-foreground text-xs flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" /> {errors.username}
                   </p>
                 )}
@@ -188,20 +207,25 @@ export default function WelcomeAuth() {
               {/* Email (only for registration) */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-zinc-400 text-xs">Email</Label>
+                  <Label
+                    htmlFor="email"
+                    className="text-secondary-foreground text-xs"
+                  >
+                    Email
+                  </Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={`bg-zinc-900 border-zinc-900 text-white pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                      className={`bg-background border-border text-foreground pl-10 ${errors.email ? "border-foreground border-dashed" : ""}`}
                     />
                   </div>
                   {errors.email && (
-                    <p className="text-red-500 text-xs flex items-center gap-1">
+                    <p className="text-foreground text-xs flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" /> {errors.email}
                     </p>
                   )}
@@ -210,20 +234,25 @@ export default function WelcomeAuth() {
 
               {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-zinc-400 text-xs">Password</Label>
+                <Label
+                  htmlFor="password"
+                  className="text-secondary-foreground text-xs"
+                >
+                  Password
+                </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
                     name="password"
                     type="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`bg-zinc-900 border-zinc-900 text-white pl-10 ${errors.password ? 'border-red-500' : ''}`}
+                    className={`bg-background border-border text-foreground pl-10 ${errors.password ? "border-foreground border-dashed" : ""}`}
                   />
                 </div>
                 {errors.password && (
-                  <p className="text-red-500 text-xs flex items-center gap-1">
+                  <p className="text-foreground text-xs flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" /> {errors.password}
                   </p>
                 )}
@@ -232,45 +261,51 @@ export default function WelcomeAuth() {
               {/* Confirm Password (only for registration) */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-zinc-400 text-xs">Confirm Password</Label>
+                  <Label
+                    htmlFor="confirmPassword"
+                    className="text-secondary-foreground text-xs"
+                  >
+                    Confirm Password
+                  </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type="password"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className={`bg-zinc-900 border-zinc-900 text-white pl-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                      className={`bg-background border-border text-foreground pl-10 ${errors.confirmPassword ? "border-foreground border-dashed" : ""}`}
                     />
                   </div>
                   {errors.confirmPassword && (
-                    <p className="text-red-500 text-xs flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" /> {errors.confirmPassword}
+                    <p className="text-foreground text-xs flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />{" "}
+                      {errors.confirmPassword}
                     </p>
                   )}
                 </div>
               )}
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full bg-[#4d8eff] hover:bg-[#3b82f6] text-white gap-2"
+              <Button
+                type="submit"
+                className="w-full gap-2"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   "Processing..."
                 ) : (
-                  <>
-                    {isLogin ? "Sign In" : "Create Account"}
-                  </>
+                  <>{isLogin ? "Sign In" : "Create Account"}</>
                 )}
               </Button>
 
               {/* Toggle between Login/Register */}
-              <div className="text-center pt-4 border-t border-zinc-800">
-                <p className="text-zinc-500 text-sm">
-                  {isLogin ? "Don't have an account?" : "Already have an account?"}
+              <div className="text-center pt-4 border-t border-border">
+                <p className="text-muted-foreground text-sm">
+                  {isLogin
+                    ? "Don't have an account?"
+                    : "Already have an account?"}
                   <button
                     type="button"
                     onClick={() => {
@@ -280,10 +315,10 @@ export default function WelcomeAuth() {
                         username: "",
                         password: "",
                         confirmPassword: "",
-                        email: ""
+                        email: "",
                       });
                     }}
-                    className="text-[#4d8eff] hover:text-[#3b82f6] ml-2 font-medium"
+                    className="text-primary hover:underline underline-offset-4 ml-2 font-medium"
                   >
                     {isLogin ? "Sign up" : "Sign in"}
                   </button>
@@ -292,12 +327,17 @@ export default function WelcomeAuth() {
             </form>
 
             {/* Security Notice */}
-            <div className="mt-6 p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+            <div className="mt-6 p-3 bg-muted/50 border border-border rounded-lg">
               <div className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                <div className="text-xs text-zinc-500">
-                  <p className="font-medium text-zinc-400 mb-1">Security Notice</p>
-                  <p>For security reasons, you will be automatically logged out after 1 hour of inactivity.</p>
+                <CheckCircle className="h-4 w-4 text-foreground shrink-0 mt-0.5" />
+                <div className="text-xs text-muted-foreground">
+                  <p className="font-medium text-secondary-foreground mb-1">
+                    Security Notice
+                  </p>
+                  <p>
+                    For security reasons, you will be automatically logged out
+                    after 1 hour of inactivity.
+                  </p>
                 </div>
               </div>
             </div>
@@ -305,7 +345,7 @@ export default function WelcomeAuth() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-xs text-zinc-600">
+        <div className="text-center mt-6 text-xs text-muted-foreground">
           <p>© 2024 SeeYou SOC</p>
         </div>
       </div>

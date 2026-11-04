@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -10,7 +10,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Activity } from "lucide-react";
-import { Widget } from "./dashboard/Widget";
+import { Panel } from "./dashboard/Panel";
 import { API_ENDPOINTS } from "../config";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -25,17 +25,35 @@ const SEUIL_ATTENTIF = 10;
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-md border border-edge-strong bg-surface-2 px-3 py-2 font-data-sans-serif text-[11px] shadow-xl">
-      <div className="mb-1 text-[#8c909f]">{label}</div>
-      {payload.map((p: any) => (
-        <div key={p.dataKey} className="flex items-center justify-between gap-4">
-          <span className="flex items-center gap-1.5" style={{ color: p.color }}>
-            <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
-            {p.dataKey === "normal_count" ? "Normal" : "Threat"}
-          </span>
-          <span className="font-bold text-[#e1e2ec]">{Number(p.value).toFixed(1)}</span>
-        </div>
-      ))}
+    <div className="rounded-md border border-border bg-card px-3 py-2 font-data-mono text-[11px]">
+      <div className="mb-1 text-muted-foreground">{label}</div>
+      {payload.map((p: any) => {
+        const isThreat = p.dataKey === "attack_count";
+        return (
+          <div
+            key={p.dataKey}
+            className="flex items-center justify-between gap-4"
+          >
+            <span className="flex items-center gap-2 text-foreground">
+              <svg width="20" height="8" aria-hidden="true">
+                <line
+                  x1="0"
+                  y1="4"
+                  x2="20"
+                  y2="4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeDasharray={isThreat ? "6 3" : undefined}
+                />
+              </svg>
+              {isThreat ? "Threat" : "Normal"}
+            </span>
+            <span className="font-bold text-foreground">
+              {Number(p.value).toFixed(1)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -44,45 +62,35 @@ export const TrafficAttackChart: React.FC = () => {
   const [data, setData] = useState<AttackAverageData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { token } = useAuth();
-  const tokenRef = useRef(token);
-  tokenRef.current = token;
-
-  // Mock faithful to the ULPGL SOC history when the backend is unreachable.
-  const MOCK_HISTORY: AttackAverageData[] = [
-    { time: "09:00", normal_count: 45, attack_count: 5 },
-    { time: "09:05", normal_count: 55, attack_count: 12 },
-    { time: "09:10", normal_count: 48, attack_count: 8 },
-    { time: "09:15", normal_count: 62, attack_count: 22 },
-    { time: "09:20", normal_count: 50, attack_count: 15 },
-    { time: "09:25", normal_count: 68, attack_count: 18 },
-    { time: "09:30", normal_count: 58, attack_count: 11 },
-    { time: "09:35", normal_count: 72, attack_count: 26 },
-    { time: "09:40", normal_count: 64, attack_count: 19 },
-    { time: "09:45", normal_count: 76, attack_count: 31 },
-  ];
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await fetch(`${API_ENDPOINTS.ALERTS.STATS_HISTORY}?limit=100`);
+        const response = await fetch(
+          `${API_ENDPOINTS.ALERTS.STATS_HISTORY}?limit=100`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
         if (response.ok) {
           const raw = await response.json();
           const adapted: AttackAverageData[] = Array.isArray(raw)
             ? raw.map((item: any) => ({
                 time: item.time,
                 normal_count: item.normal_count ?? 0,
-                attack_count: item["Moyenne d'Attaques"] ?? item.attack_count ?? 0,
+                attack_count:
+                  item["Moyenne d'Attaques"] ?? item.attack_count ?? 0,
               }))
             : [];
-          if (adapted.length) {
-            setData(adapted);
-            return;
-          }
+          setData(adapted);
         }
-        setData(MOCK_HISTORY);
       } catch (error) {
         console.error("Erreur d'historique:", error);
-        setData(MOCK_HISTORY);
       } finally {
         setLoading(false);
       }
@@ -93,24 +101,35 @@ export const TrafficAttackChart: React.FC = () => {
     let normalDrift = 50;
     const ws = new WebSocket(API_ENDPOINTS.WEBSOCKET.ALERTS);
     ws.onopen = () => {
-      if (tokenRef.current) {
-        ws.send(JSON.stringify({ token: tokenRef.current }));
+      if (token) {
+        ws.send(JSON.stringify({ token: token }));
       }
     };
     ws.onmessage = (event) => {
       try {
         const rawAlert = JSON.parse(event.data);
-        const severity = rawAlert.severity ? String(rawAlert.severity).toLowerCase() : "";
-        if (severity === "normal" || severity === "low" || severity === "info") return;
+        const severity = rawAlert.severity
+          ? String(rawAlert.severity).toLowerCase()
+          : "";
+        if (severity === "normal" || severity === "low" || severity === "info")
+          return;
 
         const currentTime = rawAlert.timestamp
-          ? new Date(String(rawAlert.timestamp).replace(" ", "T")).toLocaleTimeString("fr-FR", {
+          ? new Date(
+              String(rawAlert.timestamp).replace(" ", "T"),
+            ).toLocaleTimeString("fr-FR", {
               hour: "2-digit",
               minute: "2-digit",
             })
-          : new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+          : new Date().toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
 
-        normalDrift = Math.max(20, Math.min(90, normalDrift + (Math.random() - 0.5) * 8));
+        normalDrift = Math.max(
+          20,
+          Math.min(90, normalDrift + (Math.random() - 0.5) * 8),
+        );
 
         setData((prev) => {
           const next = [...prev];
@@ -122,7 +141,11 @@ export const TrafficAttackChart: React.FC = () => {
               normal_count: Number(normalDrift.toFixed(1)),
             };
           } else {
-            next.push({ time: currentTime, normal_count: Number(normalDrift.toFixed(1)), attack_count: 1 });
+            next.push({
+              time: currentTime,
+              normal_count: Number(normalDrift.toFixed(1)),
+              attack_count: 1,
+            });
           }
           next.sort((a, b) => a.time.localeCompare(b.time));
           if (next.length > 30) next.shift();
@@ -136,101 +159,185 @@ export const TrafficAttackChart: React.FC = () => {
     return () => ws.close();
   }, []);
 
+  const totalAlertEvents = data.reduce(
+    (sum, point) => sum + (Number(point.attack_count) || 0),
+    0,
+  );
+
   return (
-    <Widget
-      title="Traffic vs Attack Trends"
-      subtitle="Real-time packet anomaly & threat signature analysis (last 60 min)"
-      icon={<Activity className="h-4 w-4" />}
-      accent="critical"
-      actions={
-        <div className="hidden items-center gap-3 font-data-mono text-[10px] sm:flex">
-          <span className="flex items-center gap-1.5 text-info-soft">
-            <span className="h-2.5 w-2.5 rounded-sm border border-info bg-info/40" /> Normal
-          </span>
-          <span className="flex items-center gap-1.5 text-critical-soft">
-            <span className="h-2.5 w-2.5 rounded-sm border border-critical bg-critical/40" /> Threat
-          </span>
-        </div>
-      }
-      menuItems={[
-        { label: "Last 15 min" },
-        { label: "Last 60 min" },
-        { label: "Last 24h" },
-        { label: "Export PNG", destructive: true },
-      ]}
-      contentClassName="p-3"
-    >
-      {loading ? (
-        <div className="flex h-[300px] items-center justify-center">
-          <p className="animate-pulse font-data-mono text-xs text-[#8c909f]">
-            Calcul de l'évolution temporelle des attaques...
+    <Panel className="flex flex-col">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-[18px] py-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-foreground" aria-hidden="true" />
+            <h3 className="text-[13px] font-semibold text-foreground">
+              Activité des menaces
+            </h3>
+          </div>
+          <p className="mt-0.5 pl-6 text-[11px] text-muted-foreground">
+            Alertes détectées et tendance des attaques
           </p>
         </div>
-      ) : (
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
-              <defs>
-                <linearGradient id="fillNormal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#4d8eff" stopOpacity={0.22} />
-                  <stop offset="100%" stopColor="#4d8eff" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="fillThreat" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ff5a5a" stopOpacity={0.22} />
-                  <stop offset="100%" stopColor="#ff5a5a" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(66,71,84,0.45)" vertical={false} />
-              <XAxis
-                dataKey="time"
-                stroke="#6b7280"
-                tick={{ fill: "#8c909f", fontSize: 10, fontFamily: "JetBrains Mono" }}
-                tickLine={false}
-                axisLine={{ stroke: "rgba(66,71,84,0.45)" }}
-                minTickGap={24}
+
+        <div className="hidden items-center gap-4 font-data-mono text-[10px] text-foreground sm:flex">
+          <span className="flex items-center gap-2">
+            <svg width="20" height="8" aria-hidden="true">
+              <line
+                x1="0"
+                y1="4"
+                x2="20"
+                y2="4"
+                stroke="currentColor"
+                strokeWidth="2"
               />
-              <YAxis
-                stroke="#6b7280"
-                tick={{ fill: "#8c909f", fontSize: 10, fontFamily: "JetBrains Mono" }}
-                tickLine={false}
-                axisLine={false}
-                width={40}
+            </svg>
+            Normal
+          </span>
+          <span className="flex items-center gap-2">
+            <svg width="20" height="8" aria-hidden="true">
+              <line
+                x1="0"
+                y1="4"
+                x2="20"
+                y2="4"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeDasharray="6 3"
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#424754", strokeDasharray: "4 4" }} />
-              <ReferenceLine
-                y={SEUIL_ATTENTIF}
-                stroke="#ff5a5a"
-                strokeDasharray="5 5"
-                label={{
-                  value: `Seuil critique (${SEUIL_ATTENTIF})`,
-                  fill: "#ffb4ab",
-                  position: "insideTopRight",
-                  fontSize: 10,
-                  fontFamily: "JetBrains Mono",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="normal_count"
-                stroke="#4d8eff"
-                strokeWidth={2}
-                fill="url(#fillNormal)"
-                isAnimationActive={false}
-                dot={false}
-              />
-              <Area
-                type="monotone"
-                dataKey="attack_count"
-                stroke="#ff5a5a"
-                strokeWidth={2}
-                fill="url(#fillThreat)"
-                isAnimationActive={false}
-                dot={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+            </svg>
+            Threat
+          </span>
         </div>
-      )}
-    </Widget>
+      </div>
+
+      <div className="flex items-end justify-between gap-2 px-5 pb-1 pl-[54px] pt-[18px]">
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-data-mono text-[23px] font-semibold text-foreground">
+            {Math.round(totalAlertEvents).toLocaleString("fr-FR")}
+          </span>
+          <span className="text-[11px] text-muted-foreground">
+            alertes cumulées
+          </span>
+        </div>
+        <span className="font-data-mono text-[10px] text-muted-foreground">
+          {data.length} points
+        </span>
+      </div>
+
+      <div className="flex-1 px-3 pb-3">
+        {loading ? (
+          <div className="flex h-[300px] items-center justify-center">
+            <p className="animate-pulse motion-reduce:animate-none font-data-mono text-xs text-muted-foreground">
+              Calcul de l'évolution temporelle des attaques...
+            </p>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="flex h-[300px] items-center justify-center">
+            <p className="font-data-mono text-xs text-muted-foreground italic">
+              Aucune donnée d'attaque disponible pour le moment. Les données
+              seront affichées ici dès qu'elles seront générées.
+            </p>
+          </div>
+        ) : (
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={data}
+                margin={{ top: 10, right: 12, left: -18, bottom: 0 }}
+              >
+                <defs>
+                  <pattern
+                    id="hatchThreat"
+                    width="6"
+                    height="6"
+                    patternUnits="userSpaceOnUse"
+                    patternTransform="rotate(45)"
+                  >
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="6"
+                      stroke="var(--foreground)"
+                      strokeWidth="1"
+                      strokeOpacity="0.35"
+                    />
+                  </pattern>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--foreground)"
+                  strokeOpacity={0.2}
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="time"
+                  tick={{
+                    fill: "var(--foreground)",
+                    fontSize: 10,
+                    fontFamily: "JetBrains Mono",
+                  }}
+                  tickLine={false}
+                  axisLine={{ stroke: "var(--foreground)", strokeOpacity: 0.2 }}
+                  minTickGap={24}
+                />
+                <YAxis
+                  tick={{
+                    fill: "var(--foreground)",
+                    fontSize: 10,
+                    fontFamily: "JetBrains Mono",
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={40}
+                />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  cursor={{
+                    stroke: "var(--foreground)",
+                    strokeOpacity: 0.4,
+                    strokeDasharray: "4 4",
+                  }}
+                />
+                <ReferenceLine
+                  y={SEUIL_ATTENTIF}
+                  stroke="var(--foreground)"
+                  strokeOpacity={0.6}
+                  strokeDasharray="5 5"
+                  label={{
+                    value: `Seuil critique (${SEUIL_ATTENTIF})`,
+                    fill: "var(--foreground)",
+                    position: "insideTopRight",
+                    fontSize: 10,
+                    fontFamily: "JetBrains Mono",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="normal_count"
+                  stroke="var(--foreground)"
+                  strokeWidth={1.5}
+                  fill="var(--foreground)"
+                  fillOpacity={0.08}
+                  isAnimationActive={false}
+                  dot={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="attack_count"
+                  stroke="var(--foreground)"
+                  strokeWidth={2}
+                  strokeDasharray="6 3"
+                  fill="url(#hatchThreat)"
+                  fillOpacity={0.9}
+                  isAnimationActive={false}
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </Panel>
   );
 };

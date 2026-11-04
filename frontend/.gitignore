@@ -35,3 +35,7 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+
+# fichiers de claude
+CLAUDE.local.md
+.claude/settings.local.json
