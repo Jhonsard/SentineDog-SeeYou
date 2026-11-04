@@ -1,0 +1,5 @@
+# Fichiers ignorés par git à copier dans chaque nouveau worktree
+.env
+.env.local
+CLAUDE.local.md
+.claude/settings.local.json
