@@ -1,17 +1,32 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.core.auth_utils import create_access_token, verify_password
+from app.core.auth_utils import (
+    create_access_token,
+    create_password_reset_token,
+    decode_password_reset_token,
+    get_password_hash,
+    verify_password,
+)
 from app.core.config import settings
 from app.core.jwt_manager import jwt_key_manager
 from app.core.rate_limiter import limiter
 from app.db.models import User as UserModel
-from app.api.schemas import Token, User, UserCreate
+from app.api.schemas import (
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    Token,
+    User,
+    UserCreate,
+)
 from app.core.dependencies import get_db, get_current_active_user
-from app.core.auth_utils import get_password_hash
+from app.services.email_service import email_service
 from app.services.threat_detector import threat_detector
+
+logger = logging.getLogger("ids_ips.auth")
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
 
@@ -119,6 +134,7 @@ async def register_user(
     # Créer l'utilisateur
     new_user = UserModel(
         username=user_data.username,
+        full_name=user_data.full_name,
         email=user_data.email,
         hashed_password=hashed_password,
         role=user_data.role,
@@ -130,6 +146,83 @@ async def register_user(
     db.refresh(new_user)
     
     return new_user
+
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Demande de réinitialisation du mot de passe",
+)
+@limiter.limit(f"{settings.RATE_LIMIT_AUTH_REQUESTS}/{settings.RATE_LIMIT_AUTH_WINDOW_SECONDS}seconds")
+async def forgot_password(
+    request: Request,
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    """
+    Envoie un lien de réinitialisation si l'e-mail correspond à un compte actif.
+    La réponse est toujours identique pour empêcher l'énumération des comptes.
+    """
+    generic_response = {
+        "message": "Si un compte existe avec cet e-mail, un lien de réinitialisation a été envoyé."
+    }
+
+    user = db.query(UserModel).filter(UserModel.email == payload.email).first()
+    if not user or not user.is_active:
+        return generic_response
+
+    active_secret = jwt_key_manager.get_active_key(db)
+    token = create_password_reset_token(
+        user.username,
+        active_secret,
+        settings.PASSWORD_RESET_EXPIRE_MINUTES,
+    )
+    reset_url = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
+
+    email_service.send_password_reset_email(
+        user.email,
+        reset_url,
+        user.username,
+        settings.PASSWORD_RESET_EXPIRE_MINUTES,
+    )
+
+    # En développement uniquement : le lien est renvoyé pour tester sans SMTP.
+    if settings.CORS_ENVIRONMENT == "dev":
+        generic_response["reset_url"] = reset_url
+
+    return generic_response
+
+
+@router.post(
+    "/reset-password",
+    summary="Réinitialisation du mot de passe avec un jeton signé",
+)
+@limiter.limit(f"{settings.RATE_LIMIT_AUTH_REQUESTS}/{settings.RATE_LIMIT_AUTH_WINDOW_SECONDS}seconds")
+async def reset_password(
+    request: Request,
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    """Vérifie le jeton de réinitialisation puis remplace le mot de passe."""
+    invalid_link = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Lien de réinitialisation invalide ou expiré.",
+    )
+
+    active_secret = jwt_key_manager.get_active_key(db)
+    username = decode_password_reset_token(payload.token, active_secret)
+    if not username:
+        raise invalid_link
+
+    user = db.query(UserModel).filter(UserModel.username == username).first()
+    if not user or not user.is_active:
+        raise invalid_link
+
+    user.hashed_password = get_password_hash(payload.new_password)
+    db.commit()
+    logger.info("Mot de passe réinitialisé pour l'utilisateur %s", user.username)
+
+    return {"message": "Mot de passe mis à jour. Vous pouvez vous connecter."}
 
 
 @router.get("/me", response_model=User, summary="Profil de l'utilisateur authentifié (Identity Monitoring)")

@@ -124,6 +124,50 @@ def decode_access_token(token: str, secret_key: Optional[str] = None) -> Optiona
         logger.error(f"Erreur d'extraction ou de parsing du payload JWT: {str(e)}")
         return None
 
+PASSWORD_RESET_PURPOSE = "password_reset"
+
+
+def create_password_reset_token(
+    username: str,
+    secret_key: str,
+    expires_minutes: int = 15,
+) -> str:
+    """
+    Génère un JWT court, signé, réservé à la réinitialisation du mot de passe.
+    Le claim `purpose` empêche de réutiliser un jeton d'accès comme jeton de reset.
+    """
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": username,
+        "purpose": PASSWORD_RESET_PURPOSE,
+        "exp": int((now + timedelta(minutes=expires_minutes)).timestamp()),
+        "iat": int(now.timestamp()),
+        "nbf": int(now.timestamp()),
+        "jti": str(uuid.uuid4()),
+    }
+    return jwt.encode(payload, secret_key, algorithm=settings.ALGORITHM)
+
+
+def decode_password_reset_token(token: str, secret_key: str) -> Optional[str]:
+    """
+    Vérifie un jeton de réinitialisation (signature, expiration, `purpose`)
+    et renvoie le nom d'utilisateur associé, ou None si le jeton est invalide.
+    """
+    try:
+        payload = jwt.decode(token, secret_key, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        return None
+    except Exception as exc:
+        logger.error("Erreur de décodage du jeton de réinitialisation: %s", exc)
+        return None
+
+    if payload.get("purpose") != PASSWORD_RESET_PURPOSE:
+        return None
+
+    username = payload.get("sub")
+    return username if isinstance(username, str) else None
+
+
 async def authenticate_websocket(websocket: WebSocket, timeout: int = 10, secret_key: Optional[str] = None) -> Optional[TokenData]:
     """
     Authentifie une connexion WebSocket via un token JWT transmis dans le premier message.

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -80,6 +81,9 @@ const DEFAULT_APP_SETTINGS = {
 
 export default function Settings() {
   const { theme, colorTheme, setColorTheme } = useTheme();
+  // Choix de thème en brouillon : appliqué seulement à la confirmation « Enregistrer ».
+  const [draftColorTheme, setDraftColorTheme] =
+    useState<ColorTheme>(colorTheme);
   const [appSettings, setAppSettings] = useState(() => {
     try {
       const stored = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
@@ -114,6 +118,7 @@ export default function Settings() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      setColorTheme(draftColorTheme);
       window.localStorage.setItem(
         SETTINGS_STORAGE_KEY,
         JSON.stringify(appSettings),
@@ -135,6 +140,7 @@ export default function Settings() {
     } catch {
       // Stockage indisponible : la réinitialisation reste en mémoire.
     }
+    setDraftColorTheme(DEFAULT_COLOR_THEME);
     setColorTheme(DEFAULT_COLOR_THEME);
     toast.success("Paramètres réinitialisés aux valeurs par défaut");
     setPendingAction(null);
@@ -355,7 +361,8 @@ export default function Settings() {
                 <SunMoon className="h-4 w-4 text-foreground" /> Apparence
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Choix du thème de l'interface
+                Le thème choisi s'applique après confirmation de « Save Changes
+                ».
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -368,9 +375,9 @@ export default function Settings() {
                 </Label>
                 <select
                   id="color-theme"
-                  value={colorTheme}
+                  value={draftColorTheme}
                   onChange={(event) =>
-                    setColorTheme(event.target.value as ColorTheme)
+                    setDraftColorTheme(event.target.value as ColorTheme)
                   }
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-foreground focus:outline-none"
                 >
@@ -624,8 +631,7 @@ export default function Settings() {
                 <Label className="text-xs text-muted-foreground">
                   SMTP Password
                 </Label>
-                <Input
-                  type="password"
+                <PasswordInput
                   value={emailConfig.smtpPassword}
                   onChange={(e) =>
                     setEmailConfig({
@@ -1027,7 +1033,11 @@ export default function Settings() {
       <AlertDialog
         open={pendingAction !== null}
         onOpenChange={(open) => {
-          if (!open) setPendingAction(null);
+          if (!open) {
+            // Annulation : le thème affiché revient au thème réellement actif.
+            setDraftColorTheme(colorTheme);
+            setPendingAction(null);
+          }
         }}
       >
         <AlertDialogContent>
@@ -1039,7 +1049,7 @@ export default function Settings() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingAction === "save"
-                ? "Les modifications seront appliquées et mémorisées sur cet appareil."
+                ? "Les modifications, dont le thème de couleurs, seront appliquées et mémorisées sur cet appareil."
                 : "Tous les paramètres du site reviendront aux valeurs par défaut. Le thème de couleurs sera réinitialisé sur Thème Minimaliste."}
             </AlertDialogDescription>
           </AlertDialogHeader>

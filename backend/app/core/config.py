@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, ge=5, le=480)
+    PASSWORD_RESET_EXPIRE_MINUTES: int = Field(default=15, ge=5, le=60)
+    # URL publique du frontend, utilisée dans les liens de réinitialisation.
+    FRONTEND_URL: str = Field(default="http://localhost:3000")
+    # Journal rotatif JSON ; chaîne vide pour désactiver l'écriture fichier.
+    LOG_FILE: Optional[str] = Field(default="logs/backend.log")
 
     SSH_TIMEOUT_SECONDS: int = Field(default=5, ge=1, le=60)
     SSH_KNOWN_HOSTS_FILE: Optional[str] = Field(default=None)

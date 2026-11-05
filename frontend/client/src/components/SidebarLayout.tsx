@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import MetricCardsGrid from "./MetricCardsGrid";
 import { TrafficAttackChart } from "./TrafficAttackChart";
 import { AlertFeed } from "./AlertFeed";
+import { AlertChartViews } from "./alerts/AlertChartViews";
 import { EngineHealthPanel } from "./dashboard/EngineHealthPanel";
 import { RecentAlertsPanel } from "./dashboard/RecentAlertsPanel";
 import { AIPanel } from "./dashboard/AIPanel";
@@ -577,6 +578,9 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
 
                 {/* GRILLE DES COMPOSANTS KPI CARD */}
                 <MetricCardsGrid stats={stats} wsConnected={wsConnected} />
+
+                {/* ANALYSE DES ALERTES : cinq lectures sur les alertes réelles */}
+                <AlertChartViews alerts={alerts} />
 
                 {/* GRILLE DU MILIEU : TÉLÉMÉTRIE + MOTEUR SNORT */}
                 <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3">

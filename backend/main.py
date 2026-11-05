@@ -37,7 +37,7 @@ from app.engine.firewall import firewall_manager
 from app.core.json_logger import configure_logging
 from app.mcp.server import create_mcp_app
 
-configure_logging(level=logging.INFO)
+configure_logging(level=logging.INFO, log_file=settings.LOG_FILE)
 logger = logging.getLogger("ids_ips.main")
 
 @asynccontextmanager

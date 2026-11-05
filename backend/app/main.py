@@ -12,7 +12,7 @@ from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 
@@ -37,7 +37,7 @@ from app.engine.firewall import firewall_manager
 from app.core.json_logger import configure_logging
 from app.mcp.server import create_mcp_app
 
-configure_logging(level=logging.INFO)
+configure_logging(level=logging.INFO, log_file=settings.LOG_FILE)
 logger = logging.getLogger("ids_ips.main")
 
 @asynccontextmanager
@@ -55,6 +55,18 @@ async def app_lifespan(app: FastAPI):
         logger.info("Tables initialisées/vérifiées avec succès (Base.metadata).")
     except Exception as db_err:
         logger.error(f"Erreur lors de la création directe des tables : {str(db_err)}")
+
+    # 1 bis. Colonnes ajoutees apres la creation initiale : create_all ne modifie pas les tables existantes.
+    try:
+        inspector = inspect(engine)
+        if "users" in inspector.get_table_names():
+            user_columns = {column["name"] for column in inspector.get_columns("users")}
+            if "full_name" not in user_columns:
+                with engine.begin() as connection:
+                    connection.execute(text("ALTER TABLE users ADD COLUMN full_name VARCHAR(100)"))
+                logger.info("Colonne users.full_name ajoutee automatiquement.")
+    except Exception as migration_err:
+        logger.error(f"Impossible d'ajouter la colonne users.full_name : {str(migration_err)}")
 
     # 2. Creation securisee de l'utilisateur Admin par defaut
     try:

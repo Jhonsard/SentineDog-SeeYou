@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -47,6 +49,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
   const { setOpenMobile } = useSidebar();
+  const { logout } = useAuth();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Surveillance: true,
     Protection: true,
@@ -152,6 +155,15 @@ export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
                   ULPGL Goma
                 </span>
               </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={logout}
+              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              <span>Se déconnecter</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

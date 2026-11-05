@@ -30,6 +30,7 @@ class Alert(AlertCreate):
 class UserCreate(BaseModel):
     """Schéma d'inscription : le mot de passe en clair est requis ici."""
     username: str = Field(..., min_length=3, max_length=50)
+    full_name: Optional[str] = Field(None, max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=8)
     role: str = "user"
@@ -38,11 +39,25 @@ class User(BaseModel):
     """Schéma de sortie sécurisé : aucune trace du mot de passe (hashed ou non)."""
     id: int
     username: str
+    full_name: Optional[str] = None
     email: EmailStr
     role: str
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+class ForgotPasswordRequest(BaseModel):
+    """Demande de réinitialisation : seul l'e-mail est fourni."""
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    """Réinitialisation effective : jeton signé et nouveau mot de passe."""
+    token: str = Field(..., min_length=10)
+    new_password: str = Field(..., min_length=8)
+
+class MessageResponse(BaseModel):
+    """Réponse texte générique (réinitialisation, etc.)."""
+    message: str
 
 # SCHÉMAS LIÉS AUX JETONS DE SÉCURITÉ (AUTH)
 

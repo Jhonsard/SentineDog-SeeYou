@@ -1,8 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import Login from "@/pages/Login";
-import WelcomeAuth from "@/pages/WelcomeAuth";
+import AuthPage from "@/pages/AuthPage";
 import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -38,8 +37,9 @@ function NodesRoute() {
 function Router() {
   return (
     <Switch>
-      <Route path="/welcome" component={WelcomeAuth} />
-      <Route path="/login" component={Login} />
+      <Route path="/welcome" component={AuthPage} />
+      <Route path="/login" component={AuthPage} />
+      <Route path="/reset-password" component={AuthPage} />
       <Route path="/alerts">
         {() => <ProtectedRoute component={AlertsRoute} />}
       </Route>

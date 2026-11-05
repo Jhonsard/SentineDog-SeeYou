@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Widget } from "./Widget";
 import { KpiCard } from "./KpiCard";
+import { AlertChartViews } from "../alerts/AlertChartViews";
 import { API_ENDPOINTS } from "@/config";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeSeverity, severityLabel } from "@/lib/logs";
@@ -200,6 +201,10 @@ export function NetworkTrafficView({ stats, alerts }: NetworkTrafficViewProps) {
               footnote={kpi.footnote}
             />
           ))}
+        </div>
+
+        <div className="col-span-12">
+          <AlertChartViews alerts={alerts} />
         </div>
 
         <div className="col-span-12 xl:col-span-8">

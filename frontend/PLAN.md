@@ -1,6 +1,6 @@
 # PLAN.md : refonte SentineDog-SeeYou
 
-Statut : **PHASES 1 À 7 TERMINÉES** (Phases 6 et 7 encore en attente de validation utilisateur). **PHASE 10 : ÉTAPES 1 À 7 FAITES ; 8 ET 9 REPRISES PAR LA PHASE 11**. **PHASE 11 : ÉTAPES 1 À 9 FAITES ET VALIDÉE LE 2026-11-04 (SHELL, VUE D'ENSEMBLE, RÉSEAU/TERMINAUX, ALERTES, LISTE NOIRE, RAPPORTS + PDF RÉEL, FUSIONS JOURNAUX + ACTIFS/NŒUDS, RESPONSIVE, VÉRIFICATION).** **5 THÈMES OKLCH APPLIQUÉS LE 2026-11-05 (THEME-5 PAR DÉFAUT).** TESTS VISUELS MANUELS (760/1100, CLAVIER, CAPTURES) À CONFIRMER PAR L'UTILISATEUR. `bash scripts/verif.sh` passe intégralement.
+Statut : **PHASES 1 À 7 TERMINÉES** (Phases 6 et 7 encore en attente de validation utilisateur). **PHASE 10 : ÉTAPES 1 À 7 FAITES ; 8 ET 9 REPRISES PAR LA PHASE 11**. **PHASE 11 : ÉTAPES 1 À 9 FAITES ET VALIDÉE LE 2026-11-04 (SHELL, VUE D'ENSEMBLE, RÉSEAU/TERMINAUX, ALERTES, LISTE NOIRE, RAPPORTS + PDF RÉEL, FUSIONS JOURNAUX + ACTIFS/NŒUDS, RESPONSIVE, VÉRIFICATION).** **5 THÈMES OKLCH APPLIQUÉS LE 2026-11-05 (THEME-5 PAR DÉFAUT).** TESTS VISUELS MANUELS (760/1100, CLAVIER, CAPTURES) À CONFIRMER PAR L'UTILISATEUR. `bash scripts/verif.sh` passe intégralement. **PHASE 12 (2026-11-05) : GRAPHIQUES D'ALERTES SUR VUE D'ENSEMBLE + RÉSEAU, CORRECTION DU FLUX SAVE/RESET DES PARAMÈTRES — FAITE, VALIDATION UTILISATEUR EN ATTENTE.** **PHASE 13 (2026-11-05) : AUTHENTIFICATION SPLIT-CARD + DÉCONNEXION — FAITE, VALIDATION UTILISATEUR EN ATTENTE.** **PHASE 14 (2026-11-05) : NOM COMPLET + MOT DE PASSE OUBLIÉ (FRONTEND ET BACKEND) + VISIBILITÉ DES MOTS DE PASSE — FAITE, VALIDATION UTILISATEUR EN ATTENTE.**
 
 **Décision thèmes (2026-11-05)** : 5 thèmes de couleurs `.theme-1` à `.theme-5` dans `client/src/index.css`, chacun avec sa déclinaison `.dark`. **`.theme-5` (Minimaliste Noir & Blanc) est le thème par défaut**. Le choix est persisté dans `localStorage` (`color-theme`) et le mode clair/sombre dans `theme`. Sélecteur de thème dans **Paramètres**, bascule clair/sombre dans la **topbar**. `client/index.html` applique le thème avant le premier rendu. `scripts/audit-couleurs.sh` (section 5) autorise les tokens `oklch` ; `AGENTS.md`, `.claude/rules/palette-couleurs.md`, `contexte/charte-graphique.md` et `SPEC.md` sont alignés.
 
@@ -377,12 +377,151 @@ Non modifiés : `server/`, `shared/`, `patches/`, `vercel.json`, `dist/`, `.env*
 
 ---
 
+## Phase 12 : Graphiques d'alertes (Vue d'ensemble + Réseau) et flux Save/Reset — EN COURS
+
+**Demande utilisateur (2026-11-05)** : `AlertChartViews` (5 vues) doit apparaître sur la **Vue d'ensemble** et la page **Réseau**, pas sur la page Alertes. Le bouton **Enregistrer** du popup des Paramètres doit appliquer le thème choisi.
+
+### Constat vérifié (navigateur headless, CDP)
+
+- Le `<select>` de thème applique **immédiatement** la classe (`theme-2`) et les tokens (`bg-primary` devient bleu) dès la sélection. Le popup « Enregistrer » ne produit donc plus aucun changement visible : il réapplique un thème déjà actif. `applyColorTheme()` ajouté dans `Settings.tsx` est un doublon de l'effet de `ThemeContext.tsx:86-90`.
+- `.theme-1` (Neutre) et `.theme-5` (Minimaliste) sont quasi identiques (gris, écarts de luminosité < 0,03) : basculer entre les deux semble « ne rien faire ».
+
+### Décisions
+
+- **D19 — application différée du thème** : le `<select>` met à jour un **brouillon local** ; `setColorTheme()` n'est appelé qu'à la confirmation « Enregistrer ». « Annuler »/Échap restaure le brouillon. « Réinitialiser » applique `.theme-5` après confirmation. Suppression de `applyColorTheme()`.
+- **D20 — placement** :
+  - Vue d'ensemble : section pleine largeur « Analyse des alertes » entre la grille KPI et la grille Télémétrie / Moteur.
+  - Réseau : `col-span-12` après la rangée de KPI, avant le graphique de trafic.
+- **D21 — `ui/chart.tsx` réintégré** (révise D4) : il est désormais utilisé par `AlertChartViews`. Les sélecteurs `#ccc`/`#fff` (valeurs par défaut de recharts, pas des couleurs rendues) sont remplacés par des sélecteurs sans hex pour que l'audit passe.
+- **D22 — séries accessibles** : différenciation par opacité et style de trait en plus de la teinte (règle `accessibilite.md`), utile en `.theme-5` qui est en niveaux de gris.
+
+### Étapes
+
+1. [x] Paramètres : brouillon de thème + application à la confirmation, retrait du doublon `applyColorTheme`. **Fait le 2026-11-05.**
+2. [x] Vue d'ensemble : insertion de `AlertChartViews alerts={alerts}` entre la grille KPI et la grille Télémétrie / Moteur. **Fait le 2026-11-05.**
+3. [x] Réseau : insertion de `AlertChartViews alerts={alerts}` en `col-span-12` après les KPI. **Fait le 2026-11-05.**
+4. [x] `ui/chart.tsx` : littéraux hex retirés des sélecteurs recharts. **Fait le 2026-11-05.**
+5. [x] Graphiques : opacités distinctes (barres, radial) et trait pointillé pour la série « Bloquées » (aires). **Fait le 2026-11-05.**
+6. [x] `pnpm check`, Prettier, `bash scripts/audit-couleurs.sh`, `bash scripts/verif.sh` : **OK**. **Fait le 2026-11-05.**
+7. [ ] **Validation utilisateur.**
+
+**Validation navigateur (headless, CDP, 2026-11-05)** : sélection du thème = brouillon (le site ne change pas), « Annuler » restaure, « Enregistrer » applique et persiste (`documentElement.className` + `localStorage.color-theme`), « Réinitialiser » revient à `.theme-5`. Les 5 vues de `AlertChartViews` sont présentes sur Vue d'ensemble et Réseau.
+
+**Hors périmètre de cette phase** : retoucher les palettes `.theme-1` / `.theme-5` (signalé, à trancher séparément).
+
+---
+
+## Phase 13 : Authentification split-card (connexion + inscription) et déconnexion — EN COURS
+
+**Demande utilisateur (2026-11-05)** : carte d'authentification à deux colonnes (formulaire à gauche, illustration à droite), formulaires `LoginForm` / `SignupForm` du cahier des charges, bascule sans rechargement, bouton de déconnexion, compatibilité des 5 thèmes OKLCH.
+
+### Contraintes réelles vérifiées
+
+- `AUTH.TOKEN` est en **OAuth2** : champ `username`, pas `email`.
+- `AUTH.REGISTER` attend `{ username, email, password, role }`.
+- Aucun endpoint OAuth GitHub dans le backend ni dans `config.ts`.
+- `ui/field.tsx`, `Card`, `Input`, `Button` existent déjà ; `logout()` vide `jwt_token` et redirige vers `/login`.
+- Illustration disponible : `client/public/hero-banner.png` (1536 × 1024).
+
+### Décisions (validées par l'utilisateur le 2026-11-05)
+
+- **D23** : boutons GitHub **affichés mais désactivés** avec la mention « Bientôt disponible » (aucun OAuth backend, aucun faux bouton actif).
+- **D24** : inscription enrichie d'un champ **Nom d'utilisateur** ; payload `{ username, email, password, role: "user" }`. Le nom complet reste affiché mais n'est pas envoyé (pas de champ backend).
+- **D25** : connexion par champ unique **« Identifiant ou e-mail »**, envoyé dans `username`.
+- **D26** : bouton **« Se déconnecter »** dans le **footer de la sidebar**, sous la carte utilisateur.
+- Libellés en **français** ; `cn` importé depuis `@/lib/utils` ; couleurs uniquement via tokens.
+
+### Fichiers
+
+- Nouveau `client/src/pages/AuthPage.tsx` (split-card + bascule login/signup), utilisé par `/login` et `/welcome`.
+- Nouveaux `client/src/components/auth/login-form.tsx` et `signup-form.tsx`.
+- `client/src/App.tsx` : routes `/login` et `/welcome` → `AuthPage`.
+- `client/src/components/app-sidebar.tsx` : entrée de déconnexion.
+- Suppression de `client/src/pages/Login.tsx` et `WelcomeAuth.tsx` (remplacés).
+
+### Étapes
+
+1. [x] `LoginForm` et `SignupForm` câblés aux endpoints existants (chargement, erreurs, validation, GitHub désactivé). **Fait le 2026-11-05.**
+2. [x] `AuthPage` split-card, image `hero-banner.png` à droite, bascule sans rechargement, responsive, illustration masquée sous `md`. **Fait le 2026-11-05.**
+3. [x] `/login` et `/welcome` rendent `AuthPage` ; `Login.tsx` et `WelcomeAuth.tsx` supprimés. **Fait le 2026-11-05.**
+4. [x] Déconnexion dans le footer de la sidebar (`logout()` → `/login`). **Fait le 2026-11-05.**
+5. [x] `pnpm check`, Prettier, `bash scripts/audit-couleurs.sh`, `bash scripts/verif.sh` : **OK**. **Fait le 2026-11-05.**
+6. [x] Test navigateur headless : split-card + image visibles, 5 champs d'inscription, validation, GitHub `disabled`, bascule sans changement d'URL, déconnexion → `/login` avec `jwt_token` purgé. **Fait le 2026-11-05.**
+7. [ ] **Validation utilisateur.**
+
+**Limites assumées** : « Mot de passe oublié » affiché désactivé (aucun endpoint de réinitialisation). Le nom complet n'est pas envoyé à l'API d'inscription (pas de champ backend). L'URL reste `/login` pendant la bascule : c'est volontaire, pour ne pas recharger la page.
+
+---
+
+## Phase 14 : Nom complet, réinitialisation du mot de passe et visibilité — FAITE, VALIDATION EN ATTENTE
+
+**Demande utilisateur (2026-11-05)** : conserver le champ Nom d'utilisateur ; prendre en charge côté **backend et frontend** le **nom complet** à l'inscription et le **mot de passe oublié** ; ajouter l'affichage/masquage des mots de passe partout.
+
+**Déjà fait côté frontend (2026-11-05)** :
+- `ui/password-input.tsx` (bouton œil natif, `aria-label`, `aria-pressed`), utilisé dans `login-form`, `signup-form` (mot de passe + confirmation), Paramètres (SMTP) et le formulaire de réinitialisation.
+- `config.ts` : `AUTH.FORGOT_PASSWORD` et `AUTH.RESET_PASSWORD` ajoutés.
+- Inscription : `full_name` envoyé au backend et enregistré.
+- `forgot-password-form.tsx` (e-mail, réponse générique, affichage du `reset_url` en mode dev) et `reset-password-form.tsx` (nouveau mot de passe + confirmation).
+- `AuthPage` : mode « forgot » et route `/reset-password?token=…`.
+- « Mot de passe oublié ? » n'est plus désactivé.
+- Vérifié en navigateur headless : bascule mot de passe login/inscription/Paramètres, formulaire oubli, reset avec et sans jeton. `pnpm check` et audit couleurs OK.
+
+### Backend réalisé (`../backend`, après `/add-dir`)
+
+1. [x] **Nom complet** : colonne `users.full_name` nullable dans `models.py` ; migration Alembic `9e1d2c3b4a5f` (`down_revision = b3e91d4a7c02`), **idempotente** (la base locale avait déjà la colonne) ; `UserCreate.full_name` et `User.full_name` ; enregistrement dans `register_user`.
+2. [x] **Réinitialisation** : `ForgotPasswordRequest` / `ResetPasswordRequest` ; helpers `create_password_reset_token` / `decode_password_reset_token` (`purpose="password_reset"`, expiration 15 min, claim `jti`) ; `POST /auth/forgot-password` (202, réponse générique anti-énumération, rate limit, `reset_url` renvoyé **en dev uniquement**) et `POST /auth/reset-password` ; config `FRONTEND_URL` et `PASSWORD_RESET_EXPIRE_MINUTES` ; `EmailService.send_email(..., to_email=...)`, `is_configured()` sans exiger `ADMIN_EMAIL`, et `send_password_reset_email()`.
+3. [x] **Rattrapage de schéma** : `app/main.py` (point d'entrée Docker) ajoute `users.full_name` par `ALTER TABLE` idempotent si `create_all` ne l'a pas fait, car l'image n'exécute pas Alembic.
+
+### Frontend réalisé
+
+4. [x] `config.ts` : `AUTH.FORGOT_PASSWORD` et `AUTH.RESET_PASSWORD`.
+5. [x] Inscription : `full_name` envoyé.
+6. [x] « Mot de passe oublié ? » actif → formulaire e-mail (`AuthPage` mode `forgot`).
+7. [x] Route `/reset-password` + formulaire nouveau mot de passe avec `PasswordInput`.
+8. [x] `pnpm check`, Prettier, audit couleurs, `bash scripts/verif.sh` : **VÉRIFICATION : OK**.
+
+### Validation de bout en bout (2026-11-05)
+
+Backend isolé sur `8011` (base SQLite temporaire, SMTP désactivé) + Vite sur `3000` :
+
+| Étape | Résultat |
+| --- | --- |
+| Inscription API avec `full_name` | 201, `full_name` renvoyé ✅ |
+| Inscription via l'interface | bascule vers la connexion ✅ |
+| Nom complet en base | `('e2eui', 'Utilisateur E2E', …)` ✅ |
+| Mot de passe oublié | 202, message générique + `reset_url` en dev ✅ |
+| E-mail inconnu | 202, message générique, pas de lien ✅ |
+| Réinitialisation avec jeton | 200 ✅ |
+| Connexion nouveau mot de passe | 200, ancien mot de passe refusé (401) ✅ |
+| Jeton invalide | 400 ✅ |
+| Migration Alembic | OK avec colonne déjà présente **et** sans colonne ✅ |
+
+**À configurer en production** : `FRONTEND_URL` (URL publique du frontend), `PASSWORD_RESET_EXPIRE_MINUTES` (défaut 15) et les variables SMTP. Sans SMTP, l'e-mail n'est pas envoyé ; le lien n'est renvoyé que si `CORS_ENVIRONMENT=dev`.
+
+**Constat sur le backend local de l'utilisateur (port 8000)** : la nouvelle route répond `202` avec le message générique mais **sans `reset_url`** — `CORS_ENVIRONMENT` n'y est donc pas `dev`. Pour tester le lien en local, passer `CORS_ENVIRONMENT=dev` ou configurer SMTP.
+
+---
+
+## Phase 15 : Journalisation persistante du backend — FAITE
+
+**Demande utilisateur (2026-11-05)** : écrire les logs du backend dans un fichier.
+
+- `app/core/json_logger.py` : `configure_logging(level, log_file)` ajoute un `RotatingFileHandler` JSON (10 Mo, 5 archives) en plus de la console. `uvicorn` et `uvicorn.access` y écrivent aussi (sans doublon avec `uvicorn.error`, qui propage).
+- Le fichier actif est `chmod 0640` et `chown` vers `SUDO_UID`/`SUDO_GID` : il reste lisible par l'utilisateur qui lance `sudo -E`, sans élargir les droits.
+- `app/core/config.py` : `LOG_FILE` (défaut `logs/backend.log` ; chaîne vide pour désactiver).
+- Appelants mis à jour : `backend/main.py` et `backend/app/main.py`.
+- `*.log` est déjà couvert par le `.gitignore` racine.
+
+**Validation (2026-11-05)** : le serveur réel s'est rechargé (worker `89255`) et a créé `backend/logs/backend.log` (`jhonsard:jhonsard`, 0640). 109 lignes, **0 ERROR**, 5 WARNING (isolements pare-feu). Pour suivre : `tail -f backend/logs/backend.log`.
+
+---
+
 ## Hors périmètre / à ne pas toucher
 
-`server/`, `shared/`, `patches/`, `vercel.json`, `pnpm-lock.yaml`, `dist/`, `.env*` ; `client/src/config.ts` et tous les appels API existants ; `client/src/contexts/AuthContext.tsx` et `AIContext.tsx` (hors raccord visuel éventuel) ; clé `jwt_token`.
+`server/`, `shared/`, `patches/`, `vercel.json`, `pnpm-lock.yaml`, `dist/`, `.env*` ; tous les appels API existants **sauf** l'ajout des deux endpoints de réinitialisation validé en Phase 14 ; `client/src/contexts/AuthContext.tsx` et `AIContext.tsx` (hors raccord visuel éventuel) ; clé `jwt_token`.
 
 ## Notes annexes
 
 - `.config.ts.swp` parasite à ignorer.
 - `client/index.html:2` : `lang="en"` pour une interface française — proposition de passer à `lang="fr"` (à valider).
-- `sidebar.tsx` et `chart.tsx` shadcn ne sont pas utilisés : ne pas les réécrire, les supprimer ou les laisser.
+- `sidebar.tsx` et `chart.tsx` shadcn : `chart.tsx` est désormais utilisé par `AlertChartViews` (Phase 12) ; ses sélecteurs recharts sont nettoyés des littéraux hex pour l'audit. `sidebar.tsx` est utilisé par le shell.

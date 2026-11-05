@@ -6,6 +6,7 @@ import smtplib
 import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from html import escape
 from typing import Optional
 import logging
 from datetime import datetime
@@ -25,42 +26,46 @@ class EmailService:
         self.admin_email = settings.ADMIN_EMAIL
     
     def is_configured(self) -> bool:
-        """Vérifie si le service SMTP est correctement configuré."""
+        """Vérifie si les paramètres SMTP d'envoi sont renseignés."""
         return all([
             self.smtp_server,
             self.smtp_username,
             self.smtp_password,
             self.sender_email,
-            self.admin_email
         ])
-    
+
     def send_email(
         self,
         subject: str,
         body: str,
-        html_body: Optional[str] = None
+        html_body: Optional[str] = None,
+        to_email: Optional[str] = None,
+        subject_prefix: Optional[str] = "[IDS-IPS ALERT]",
     ) -> bool:
         """
-        Envoie un email à l'administrateur.
-        
+        Envoie un email à l'administrateur ou à un destinataire explicite.
+
         Args:
             subject: Sujet de l'email
             body: Corps du email en texte brut
             html_body: Corps du email en HTML (optionnel)
-            
+            to_email: Destinataire explicite (par défaut ADMIN_EMAIL)
+            subject_prefix: Préfixe du sujet, None pour aucun préfixe
+
         Returns:
             True si l'email a été envoyé avec succès, False sinon
         """
-        if not self.is_configured():
-            logger.warning("Service SMTP non configuré - email non envoyé")
+        recipient = to_email or self.admin_email
+        if not self.is_configured() or not recipient:
+            logger.warning("Service SMTP ou destinataire non configuré - email non envoyé")
             return False
-        
+
         try:
             # Création du message
             msg = MIMEMultipart('alternative')
             msg['From'] = self.sender_email
-            msg['To'] = self.admin_email
-            msg['Subject'] = f"[IDS-IPS ALERT] {subject}"
+            msg['To'] = recipient
+            msg['Subject'] = f"{subject_prefix} {subject}" if subject_prefix else subject
             
             # Ajout du corps texte
             text_part = MIMEText(body, 'plain')
@@ -89,7 +94,47 @@ class EmailService:
         except Exception as e:
             logger.error(f"Erreur lors de l'envoi de l'email: {e}")
             return False
-    
+
+    def send_password_reset_email(
+        self,
+        to_email: str,
+        reset_url: str,
+        username: str,
+        expires_minutes: int = 15,
+    ) -> bool:
+        """Envoie le lien de réinitialisation du mot de passe à l'utilisateur."""
+        safe_username = escape(username)
+        safe_url = escape(reset_url, quote=True)
+        subject = "Réinitialisation de votre mot de passe"
+        body = (
+            f"Bonjour {username},\n\n"
+            "Une réinitialisation de mot de passe a été demandée pour votre compte.\n"
+            f"Ouvrez ce lien pour choisir un nouveau mot de passe (valable {expires_minutes} minutes) :\n"
+            f"{reset_url}\n\n"
+            "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email : "
+            "votre mot de passe reste inchangé.\n"
+        )
+        html_body = f"""\
+<html>
+  <body style="font-family: Arial, sans-serif; color: #222;">
+    <p>Bonjour {safe_username},</p>
+    <p>Une réinitialisation de mot de passe a été demandée pour votre compte.</p>
+    <p>
+      <a href="{safe_url}">Choisir un nouveau mot de passe</a>
+      (lien valable {expires_minutes} minutes).
+    </p>
+    <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email :
+    votre mot de passe reste inchangé.</p>
+  </body>
+</html>"""
+        return self.send_email(
+            subject,
+            body,
+            html_body,
+            to_email=to_email,
+            subject_prefix=None,
+        )
+
     def send_suspicious_connection_alert(
         self,
         source_ip: str,
