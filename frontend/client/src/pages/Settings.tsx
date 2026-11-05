@@ -11,6 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Settings as SettingsIcon,
   Save,
   RefreshCw,
@@ -32,40 +42,58 @@ import { toast } from "sonner";
 import { useAI } from "../contexts/AIContext";
 import {
   COLOR_THEMES,
+  DEFAULT_COLOR_THEME,
   useTheme,
   type ColorTheme,
 } from "@/contexts/ThemeContext";
 import { API_ENDPOINTS, API_BASE_URL } from "../config";
 
+const SETTINGS_STORAGE_KEY = "seeyou-settings";
+
+const DEFAULT_APP_SETTINGS = {
+  // General Settings
+  siteName: "ULPGL Security Console",
+  timezone: "UTC+2",
+  language: "fr",
+
+  // Notification Settings
+  emailAlerts: true,
+  smsAlerts: false,
+  pushNotifications: true,
+  alertThreshold: "high",
+
+  // Security Settings
+  sessionTimeout: 30,
+  twoFactorAuth: false,
+  ipWhitelist: "",
+
+  // Network Settings
+  apiEndpoint: API_BASE_URL,
+  websocketEndpoint: API_ENDPOINTS.WEBSOCKET.ALERTS as string,
+  networkInterface: "eth0",
+
+  // Database Settings
+  retentionPeriod: 90,
+  backupFrequency: "daily",
+  maxLogSize: 1000,
+};
+
 export default function Settings() {
   const { theme, colorTheme, setColorTheme } = useTheme();
-  const [appSettings, setAppSettings] = useState({
-    // General Settings
-    siteName: "ULPGL Security Console",
-    timezone: "UTC+2",
-    language: "fr",
-
-    // Notification Settings
-    emailAlerts: true,
-    smsAlerts: false,
-    pushNotifications: true,
-    alertThreshold: "high",
-
-    // Security Settings
-    sessionTimeout: 30,
-    twoFactorAuth: false,
-    ipWhitelist: "",
-
-    // Network Settings
-    apiEndpoint: API_BASE_URL,
-    websocketEndpoint: API_ENDPOINTS.WEBSOCKET.ALERTS as string,
-    networkInterface: "eth0",
-
-    // Database Settings
-    retentionPeriod: 90,
-    backupFrequency: "daily",
-    maxLogSize: 1000,
+  const [appSettings, setAppSettings] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (stored) {
+        return { ...DEFAULT_APP_SETTINGS, ...JSON.parse(stored) };
+      }
+    } catch {
+      // Stockage indisponible : valeurs par défaut.
+    }
+    return DEFAULT_APP_SETTINGS;
   });
+  const [pendingAction, setPendingAction] = useState<"save" | "reset" | null>(
+    null,
+  );
 
   const [emailConfig, setEmailConfig] = useState({
     smtpServer: "",
@@ -85,14 +113,31 @@ export default function Settings() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    toast.success("Settings saved successfully");
+    try {
+      window.localStorage.setItem(
+        SETTINGS_STORAGE_KEY,
+        JSON.stringify(appSettings),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      toast.success("Paramètres enregistrés");
+      setPendingAction(null);
+    } catch {
+      toast.error("Impossible d'enregistrer les paramètres.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
-    toast.info("Settings reset to defaults");
+    setAppSettings({ ...DEFAULT_APP_SETTINGS });
+    try {
+      window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
+    } catch {
+      // Stockage indisponible : la réinitialisation reste en mémoire.
+    }
+    setColorTheme(DEFAULT_COLOR_THEME);
+    toast.success("Paramètres réinitialisés aux valeurs par défaut");
+    setPendingAction(null);
   };
 
   const fetchEmailConfig = async () => {
@@ -285,14 +330,14 @@ export default function Settings() {
             variant="outline"
             size="sm"
             className="gap-2"
-            onClick={handleReset}
+            onClick={() => setPendingAction("reset")}
           >
             <RefreshCw className="h-4 w-4" /> Reset
           </Button>
           <Button
             size="sm"
             className="gap-2"
-            onClick={handleSave}
+            onClick={() => setPendingAction("save")}
             disabled={isSaving}
           >
             <Save className="h-4 w-4" />{" "}
@@ -978,6 +1023,45 @@ export default function Settings() {
           </Card>
         </div>
       </div>
+
+      <AlertDialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingAction === "save"
+                ? "Enregistrer les paramètres ?"
+                : "Réinitialiser les paramètres ?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction === "save"
+                ? "Les modifications seront appliquées et mémorisées sur cet appareil."
+                : "Tous les paramètres du site reviendront aux valeurs par défaut. Le thème de couleurs sera réinitialisé sur Thème Minimaliste."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSaving}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isSaving}
+              onClick={(event) => {
+                event.preventDefault();
+                if (pendingAction === "save") void handleSave();
+                else if (pendingAction === "reset") handleReset();
+              }}
+            >
+              {pendingAction === "save"
+                ? isSaving
+                  ? "Enregistrement..."
+                  : "Enregistrer"
+                : "Réinitialiser"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

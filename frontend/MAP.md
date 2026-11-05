@@ -15,14 +15,15 @@
 │       │                           # useLogsDisplay, useExpandableLogs
 │       ├── lib/                    # utils.ts, logs.ts, reportPdf.ts
 │       ├── components/
-│       │   ├── SidebarLayout.tsx   # shell : sidebar repliable, topbar, navigation
+│       │   ├── SidebarLayout.tsx   # shell shadcn : SidebarProvider, topbar, navigation
+│       │   ├── app-sidebar.tsx     # navigation repliable, items en texte seul
 │       │   ├── AlertFeed.tsx, BannedHosts.tsx, ThemeToggle.tsx
 │       │   ├── MetricCardsGrid.tsx, TrafficAttackChart.tsx
 │       │   ├── dashboard/          # Panel, KpiCard, StatusRing, Sparkline, Widget,
 │       │   │                       # EngineHealthPanel, NetworkTrafficView, EndpointSecurityView,
 │       │   │                       # RecentAlertsPanel, AIPanel
 │       │   ├── types.ts            # contrat des alertes et stats backend
-│       │   └── ui/                 # shadcn (table.tsx, card.tsx...)
+│       │   └── ui/                 # shadcn (table.tsx, card.tsx, sidebar.tsx...)
 │       └── pages/                  # Alerts, Assets, AssetsHub, Login, LogsHub,
 │                                   # NetworkLogs, NodesManagement, NotFound, Reports,
 │                                   # Settings, ThreatIntel, UserProfile, WelcomeAuth

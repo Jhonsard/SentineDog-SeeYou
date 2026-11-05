@@ -1,20 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import {
-  LayoutDashboard,
-  ShieldAlert,
-  ShieldX,
-  RefreshCw,
-  Gavel,
-  Globe,
-  Network,
-  Server,
-  Settings as SettingsIcon,
-  Menu,
-  ChevronRight,
-  FileText,
-  Monitor,
-  X,
-} from "lucide-react";
+import { RefreshCw, Gavel } from "lucide-react";
 import { toast } from "sonner";
 import MetricCardsGrid from "./MetricCardsGrid";
 import { TrafficAttackChart } from "./TrafficAttackChart";
@@ -36,6 +21,21 @@ import UserProfile from "../pages/UserProfile";
 import { useAuth } from "../contexts/AuthContext";
 import { useAI } from "../contexts/AIContext";
 import { ThemeToggle } from "./ThemeToggle";
+import { AppSidebar } from "./app-sidebar";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 import { API_ENDPOINTS } from "../config";
 
 type Tab =
@@ -102,47 +102,6 @@ function formatSyncTime() {
   }).format(new Date());
 }
 
-interface SidebarNavItemProps {
-  label: string;
-  active: boolean;
-  collapsed: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}
-
-/**
- * Entrée de navigation de la sidebar latérale, conforme à la maquette :
- * pastille pleine (`bg-foreground text-background`) pour l'état actif (D7).
- * Repliée sur desktop, l'icône reste seule ; le libellé passe en `sr-only`
- * (toujours accessible), et reste visible dans le tiroir mobile.
- */
-function SidebarNavItem({
-  label,
-  active,
-  collapsed,
-  onClick,
-  children,
-}: SidebarNavItemProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      title={collapsed ? label : undefined}
-      className={`flex w-full items-center gap-3 rounded-[4px] border px-[11px] py-2.5 text-left text-[13px] font-medium transition-colors ${
-        collapsed ? "justify-start md:justify-center" : ""
-      } ${
-        active
-          ? "border-transparent bg-foreground text-background"
-          : "border-transparent text-sidebar-foreground hover:border-sidebar-border hover:text-foreground"
-      }`}
-    >
-      {children}
-      <span className={collapsed ? "md:sr-only" : ""}>{label}</span>
-    </button>
-  );
-}
-
 interface SidebarLayoutProps {
   initialTab?: Tab;
 }
@@ -158,7 +117,6 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
   // --- ÉTATS GLOBALISÉS ET SYNCHRONISÉS ---
   const [isSidebarOpen, setIsSidebarOpen] =
     useState<boolean>(getStoredSidebarOpen);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState<Tab>(
     () => initialTab ?? getStoredTab() ?? "dashboard",
   );
@@ -467,7 +425,6 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
 
   const selectTab = (tab: Tab) => {
     setCurrentTab(tab);
-    setIsMobileOpen(false);
 
     // /alerts est un vrai point d'entrée. On synchronise l'URL sans remonter
     // le shell : un remontage couperait le WebSocket et perdrait l'état
@@ -489,199 +446,42 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
     }
   };
 
-  // Navigation alignée sur la maquette. « Rapports » n'y figure pas :
-  // la page est accessible depuis la page Journaux.
-  const NAV_GROUPS: {
-    title: string;
-    items: {
-      key: Tab;
-      label: string;
-      Icon: React.ComponentType<{ className?: string }>;
-    }[];
-  }[] = [
-    {
-      title: "Surveillance",
-      items: [
-        { key: "dashboard", label: "Vue d'ensemble", Icon: LayoutDashboard },
-        { key: "alerts", label: "Alertes", Icon: ShieldAlert },
-        { key: "network", label: "Réseau", Icon: Network },
-        { key: "logs", label: "Journaux", Icon: FileText },
-      ],
-    },
-    {
-      title: "Protection",
-      items: [
-        { key: "blacklist", label: "Liste noire", Icon: ShieldX },
-        { key: "threat-intel", label: "Threat intelligence", Icon: Globe },
-        { key: "assets", label: "Actifs", Icon: Server },
-        { key: "endpoint", label: "Terminaux", Icon: Monitor },
-      ],
-    },
-    {
-      title: "Administration",
-      items: [{ key: "settings", label: "Paramètres", Icon: SettingsIcon }],
-    },
-  ];
-
   return (
-    <div className="flex min-h-screen bg-background text-foreground antialiased">
-      {/* Overlay mobile (ferme le tiroir au clic) */}
-      {isMobileOpen && (
-        <button
-          type="button"
-          aria-label="Fermer la navigation"
-          className="fixed inset-0 z-40 bg-black/45 md:hidden"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
+    <SidebarProvider
+      open={isSidebarOpen}
+      onOpenChange={setIsSidebarOpen}
+      className="bg-background text-foreground antialiased"
+    >
+      <AppSidebar
+        activeKey={currentTab}
+        onSelect={(key) => selectTab(key as Tab)}
+      />
 
-      {/* ================= BARRE LATÉRALE : MAQUETTE 248 PX ================= */}
-      <aside
-        id="navigation-principale"
-        aria-label="Navigation principale"
-        className={`fixed inset-y-0 left-0 z-50 flex w-[248px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-200 motion-reduce:transition-none md:static md:z-auto md:translate-x-0 ${
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        } ${isSidebarOpen ? "md:w-[248px]" : "md:w-[68px]"}`}
-      >
-        {/* Marque */}
-        <div
-          className={`flex h-[74px] shrink-0 items-center border-b border-sidebar-border px-5 ${
-            isSidebarOpen
-              ? "gap-3"
-              : "gap-1 md:flex-col md:justify-center md:gap-0.5 md:px-0"
-          }`}
-        >
-          <img
-            src="/Seeyou.webp"
-            alt="SeeYou"
-            className="h-[38px] w-[38px] shrink-0 rounded-[4px] border border-sidebar-border object-cover"
-          />
-          <div
-            className={`flex min-w-0 flex-1 flex-col gap-px ${
-              isSidebarOpen ? "" : "md:hidden"
-            }`}
-          >
-            <strong className="truncate text-base font-semibold leading-tight">
-              SeeYou
-            </strong>
-            <span className="text-[9px] font-semibold tracking-[0.14em]">
-              SENTINEDOG SOC
-            </span>
-          </div>
-          <button
-            type="button"
-            aria-label="Fermer la navigation"
-            onClick={() => setIsMobileOpen(false)}
-            className="grid h-8 w-8 place-items-center rounded-[4px] border border-sidebar-border md:hidden"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsSidebarOpen((value) => !value)}
-            aria-label={
-              isSidebarOpen ? "Replier la navigation" : "Déplier la navigation"
-            }
-            aria-expanded={isSidebarOpen}
-            aria-controls="navigation-principale"
-            title={
-              isSidebarOpen ? "Replier la navigation" : "Déplier la navigation"
-            }
-            className={`hidden shrink-0 place-items-center rounded-[4px] border border-sidebar-border text-sidebar-foreground transition-colors hover:bg-background/60 md:grid ${
-              isSidebarOpen ? "h-8 w-8" : "h-6 w-6"
-            }`}
-          >
-            {isSidebarOpen ? (
-              <X className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <Menu className="h-4 w-4" aria-hidden="true" />
-            )}
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-5">
-          {NAV_GROUPS.map((group, index) => (
-            <div key={group.title} className={index > 0 ? "mt-7" : ""}>
-              <p
-                className={`mb-2 px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
-                  isSidebarOpen ? "" : "md:hidden"
-                }`}
-              >
-                {group.title}
-              </p>
-              <div className="space-y-1">
-                {group.items.map((item) => (
-                  <SidebarNavItem
-                    key={item.key}
-                    label={item.label}
-                    active={
-                      item.key === "assets"
-                        ? currentTab === "assets" || currentTab === "nodes"
-                        : item.key === "logs"
-                          ? currentTab === "logs" || currentTab === "reports"
-                          : currentTab === item.key
-                    }
-                    collapsed={!isSidebarOpen}
-                    onClick={() => selectTab(item.key)}
-                  >
-                    <item.Icon className="h-[18px] w-[18px] shrink-0" />
-                  </SidebarNavItem>
-                ))}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        {/* Carte utilisateur */}
-        <div className="mt-auto border-t border-sidebar-border p-3">
-          <button
-            type="button"
-            onClick={() => selectTab("profile")}
-            aria-label="Consulter le profil"
-            title={isSidebarOpen ? undefined : "Profil"}
-            className={`grid w-full items-center gap-2.5 rounded-[4px] px-1 py-2 text-left transition-colors hover:bg-background/60 ${
-              isSidebarOpen
-                ? "grid-cols-[auto_1fr_auto]"
-                : "grid-cols-[auto_1fr_auto] md:grid-cols-1 md:justify-items-center"
-            }`}
-          >
-            <span className="grid h-[34px] w-[34px] place-items-center rounded-full border border-sidebar-border bg-background text-[11px] font-bold text-foreground">
-              AS
-            </span>
-            <span
-              className={`flex min-w-0 flex-col ${
-                isSidebarOpen ? "" : "md:hidden"
-              }`}
-            >
-              <strong className="truncate text-xs">Admin SOC</strong>
-              <span className="truncate text-[10px]">ULPGL Goma</span>
-            </span>
-            <ChevronRight
-              className={`h-4 w-4 ${isSidebarOpen ? "" : "md:hidden"}`}
-              aria-hidden="true"
-            />
-          </button>
-        </div>
-      </aside>
-
-      {/* ================= CONTENEUR CENTRAL ================= */}
-      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Topbar 74 px */}
+      <SidebarInset className="h-svh overflow-hidden">
         <header className="flex h-[74px] shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-4 lg:px-[30px]">
           <div className="flex min-w-0 items-center gap-3">
-            <button
-              type="button"
-              aria-label="Ouvrir la navigation"
-              onClick={() => setIsMobileOpen(true)}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border border-border bg-background text-foreground md:hidden"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+            <SidebarTrigger aria-label="Ouvrir ou fermer la navigation" />
+            <Separator orientation="vertical" className="h-4" />
             <div className="min-w-0">
-              <h1 className="truncate text-lg font-semibold tracking-[-0.02em]">
-                {PAGE_TITLES[currentTab]}
-              </h1>
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem className="hidden sm:block">
+                    <BreadcrumbLink
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        selectTab("dashboard");
+                      }}
+                    >
+                      SeeYou
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden sm:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{PAGE_TITLES[currentTab]}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
               <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
                 Centre des opérations de sécurité · ULPGL Goma
               </p>
@@ -713,7 +513,7 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
         </header>
 
         {/* Contenu */}
-        <main className="custom-scrollbar flex-1 overflow-y-auto">
+        <div className="custom-scrollbar flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[1500px]">
             {currentTab === "alerts" ? (
               <Alerts alerts={alerts} onValidateBlock={handleOpenBanModal} />
@@ -816,8 +616,8 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
               </div>
             )}
           </div>
-        </main>
-      </div>
+        </div>
+      </SidebarInset>
 
       {/* ================= DIALOGUE / MODAL DE CONFIRMATION DE BAN RUTA ================= */}
       {showBanModal && (
@@ -856,6 +656,6 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
           </div>
         </div>
       )}
-    </div>
+    </SidebarProvider>
   );
 }

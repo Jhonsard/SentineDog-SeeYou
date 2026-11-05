@@ -6,12 +6,14 @@
 - `client/src/pages/Reports.tsx` — page Rapports (`/reports`) : bilan hebdomadaire/mensuel, anomalies réelles, export CSV et PDF.
 - `client/src/pages/LogsHub.tsx` — page Journaux (`/logs`) : `NetworkLogs` seul + accès aux rapports.
 - `client/src/pages/AssetsHub.tsx` — page Actifs & nœuds : sections `Assets` / `NodesManagement`, `/nodes` conservée.
+- `client/src/components/app-sidebar.tsx` — navigation shadcn repliable, groupes Surveillance / Protection / Administration, items en texte seul, aucune icône.
+- `client/src/components/ui/sidebar.tsx` — composant shadcn restauré et adapté aux tokens OKLCH.
 - `client/src/lib/reportPdf.ts` — génération PDF réelle avec `jsPDF` + `jspdf-autotable`, palette alignée sur le thème clair.
 - `.prettierignore` — exclut la maquette Figma Make et `pnpm-lock.yaml` du formatage.
 
 ## Fichiers modifiés
 
-- `client/src/components/SidebarLayout.tsx` — shell 248 px repliable, bouton sans texte dans l'en-tête de la sidebar (X déployée / menu hamburger repliée, empilé sous le logo quand repliée), topbar 74 px avec bascule clair/sombre (`ThemeToggle`), drawer sous 768 px, navigation. Persistance de `sidebar-open` et `active-tab` dans `localStorage`.
+- `client/src/components/SidebarLayout.tsx` — shell shadcn `SidebarProvider` / `SidebarInset` / `SidebarTrigger`, topbar 74 px avec fil d'Ariane, statut, bascule clair/sombre (`ThemeToggle`) et avatar. Persistance `sidebar-open`, `active-tab`, `color-theme` et `theme`.
 - `client/src/App.tsx` — routes `/alerts`, `/reports` ; `/logs` et `/nodes` rendues dans le shell.
 - `client/src/index.css` — 5 thèmes oklch `.theme-1` à `.theme-5`, chacun avec sa déclinaison `.dark`, **`.theme-5` par défaut**.
 - `client/index.html` — anti-flash : applique `theme-X` et `dark` avant le premier rendu.
@@ -19,7 +21,7 @@
 - `client/src/components/dashboard/NetworkTrafficView.tsx` — page Réseau branchée sur les données réelles.
 - `client/src/components/BannedHosts.tsx` — page Liste noire avec vrais champs backend et déblocage.
 - `client/src/components/dashboard/EndpointSecurityView.tsx` — page Terminaux, compteurs réels.
-- `client/src/pages/Settings.tsx` — carte « Apparence » avec le sélecteur des 5 thèmes de couleurs.
+- `client/src/pages/Settings.tsx` — carte « Apparence » (5 thèmes), Save/Reset avec confirmation, persistance `seeyou-settings` et restauration des défauts.
 - `client/src/pages/{NetworkLogs,ThreatIntel,Assets,NodesManagement,UserProfile}.tsx` — responsive.
 - `client/src/components/{AlertFeed,AIPanel}.tsx` — `motion-reduce`.
 - `package.json`, `pnpm-lock.yaml` — ajout de `jspdf` et `jspdf-autotable`.
@@ -32,6 +34,7 @@
 | Page                                   | Changements                                                                                                                                    |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Thèmes globaux                         | 5 thèmes `oklch` `.theme-1` à `.theme-5`, `.theme-5` par défaut ; sélecteur dans Paramètres, bascule clair/sombre dans la topbar ; PDF aligné. |
+| Navigation                             | Sidebar shadcn repliable, groupes Surveillance / Protection / Administration, items en texte seul, carte utilisateur en footer.                |
 | Vue d'ensemble (`/`)                   | Shell maquette, en-tête situation/synchro, KPI, Activité des menaces, Moteur IPS, Alertes récentes, Agent IA, `AlertFeed` conservé.            |
 | Alertes (`/alerts`)                    | Filtres réels, statut dérivé, pagination 8/page, détail « Analyser » enrichi, export CSV, blocage confirmé.                                    |
 | Réseau                                 | En-tête, KPI réels (`network_load`, `pps`, `checksum_errors`, `avg_events_min`), série `STATS_HISTORY`, protocoles et flux issus des alertes.  |
@@ -41,7 +44,7 @@
 | Actifs & nœuds (`/`, `/nodes`)         | `AssetsHub` : sections Actifs / Nœuds ; `/nodes` ouvre la section Nœuds ; entrée Nœuds retirée de la sidebar.                                  |
 | Terminaux                              | Compteurs réels, taux de couverture, libellés francisés.                                                                                       |
 | Threat intelligence                    | Contenu conservé, en-tête et tableau responsives.                                                                                              |
-| Paramètres / Profil                    | Paramètres : carte « Apparence » pour le thème clair/sombre. Contenu conservé, mises en page responsives.                                      |
+| Paramètres / Profil                    | Paramètres : carte « Apparence » (5 thèmes), Save/Reset avec confirmation et persistance `seeyou-settings` ; Profil conservé.                  |
 | NetworkLogs / Assets / NodesManagement | En-têtes responsives, stats 2 colonnes sur tablette, tables défilables.                                                                        |
 | Login / Welcome / 404                  | Inchangés, déjà responsives.                                                                                                                   |
 
@@ -51,7 +54,7 @@
 - [x] Audit des couleurs adapté au thème oklch — OK.
 - [x] Contraste du texte secondaire : 4,74:1 en clair, 7,66:1 en sombre.
 - [x] PDF réel testé sur un rapport court et un rapport long de 4 pages (pagination, en-têtes, pieds de page).
-- [x] Persistance du thème de couleurs (`color-theme`), du mode (`theme`), de l'affichage des logs (`logs-display`), de la sidebar (`sidebar-open`) et de l'onglet actif (`active-tab`) — code vérifié.
+- [x] Persistance du thème de couleurs (`color-theme`), du mode (`theme`), de l'affichage des logs (`logs-display`), de la sidebar (`sidebar-open`), de l'onglet actif (`active-tab`) et des paramètres (`seeyou-settings`) — code vérifié.
 - [x] Focus visible global et `prefers-reduced-motion` — code vérifié.
 - [ ] Test visuel 760 px / 1100 px et captures — à faire dans le navigateur.
 - [ ] Test clavier et contrastes manuels — à faire dans le navigateur.
