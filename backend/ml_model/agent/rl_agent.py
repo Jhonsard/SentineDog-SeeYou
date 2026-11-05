@@ -1,11 +1,50 @@
 import os
+
+# --- TensorFlow CPU/GPU configuration (must be set BEFORE importing tensorflow) ---
+# Suppress verbose TF/CUDA/absl warnings e.g. "Could not find cuda drivers...",
+# "failed call to cuInit", "All log messages before absl::InitializeLog()...".
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+# Suppress C++-level stderr noise during import (CUDA stub, absl warnings)
+# by temporarily redirecting file descriptor 2 to /dev/null.
+_stderr_fd = os.dup(2)
+_devnull_fd = os.open(os.devnull, os.O_WRONLY)
+os.dup2(_devnull_fd, 2)
+try:
+    import tensorflow as tf
+finally:
+    os.dup2(_stderr_fd, 2)
+    os.close(_devnull_fd)
+    os.close(_stderr_fd)
+
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+
 import numpy as np
-import tensorflow as tf
 from huggingface_hub import hf_hub_download
 from collections import deque
 import random
-
 from ml_model.envs.ids_env import IDSEnv
+
+
+def _configure_tensorflow_devices():
+    """Ensure TensorFlow uses GPU when available, CPU otherwise.
+
+    CUDA_VISIBLE_DEVICES (set above) already controls visibility. This
+    function additionally lowers the Python-level TF logger verbosity so no
+    absl/CUDA runtime messages leak at import time or runtime.
+    """
+    try:
+        tf.get_logger().setLevel("ERROR")
+        gpus = tf.config.list_physical_devices("GPU")
+        if gpus:
+            tf.config.set_visible_devices(gpus, "GPU")
+        else:
+            tf.config.set_visible_devices([], "GPU")
+    except Exception:
+        pass
+
+
+_configure_tensorflow_devices()
 
 
 class ModelLoader:
