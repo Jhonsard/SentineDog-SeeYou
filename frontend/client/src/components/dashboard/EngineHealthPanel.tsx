@@ -13,6 +13,8 @@ interface EngineHealthPanelProps {
   health?: number;
   /** Contrôles du moteur, déplacés de la topbar vers ce panneau (D8). */
   isMonitoring?: boolean;
+  /** Commande moteur en cours : désactive temporairement les boutons. */
+  busy?: boolean;
   onStart?: () => void;
   onStop?: () => void;
 }
@@ -36,6 +38,7 @@ export function EngineHealthPanel({
   stats,
   health = 0,
   isMonitoring = false,
+  busy = false,
   onStart,
   onStop,
 }: EngineHealthPanelProps) {
@@ -97,7 +100,7 @@ export function EngineHealthPanel({
           <Button
             type="button"
             onClick={onStart}
-            disabled={isMonitoring || !onStart}
+            disabled={isMonitoring || busy || !onStart}
             className="w-full justify-between"
           >
             <span className="inline-flex items-center gap-2">
@@ -110,7 +113,7 @@ export function EngineHealthPanel({
             type="button"
             variant="outline"
             onClick={onStop}
-            disabled={!isMonitoring || !onStop}
+            disabled={!isMonitoring || busy || !onStop}
             className="w-full justify-between"
           >
             <span className="inline-flex items-center gap-2">

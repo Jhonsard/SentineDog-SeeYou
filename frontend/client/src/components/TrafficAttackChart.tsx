@@ -98,7 +98,6 @@ export const TrafficAttackChart: React.FC = () => {
 
     fetchHistory();
 
-    let normalDrift = 50;
     const ws = new WebSocket(API_ENDPOINTS.WEBSOCKET.ALERTS);
     ws.onopen = () => {
       if (token) {
@@ -126,24 +125,22 @@ export const TrafficAttackChart: React.FC = () => {
               minute: "2-digit",
             });
 
-        normalDrift = Math.max(
-          20,
-          Math.min(90, normalDrift + (Math.random() - 0.5) * 8),
-        );
-
         setData((prev) => {
           const next = [...prev];
           const idx = next.findIndex((p) => p.time === currentTime);
           if (idx !== -1) {
             next[idx] = {
               ...next[idx],
-              attack_count: Number((next[idx].attack_count + 0.5).toFixed(2)),
-              normal_count: Number(normalDrift.toFixed(1)),
+              attack_count: next[idx].attack_count + 1,
             };
           } else {
+            // Le WebSocket ne fournit que les alertes : le trafic normal reprend
+            // la dernière valeur réelle de l'historique, sans valeur inventée.
+            const lastNormal =
+              next.length > 0 ? next[next.length - 1].normal_count : 0;
             next.push({
               time: currentTime,
-              normal_count: Number(normalDrift.toFixed(1)),
+              normal_count: lastNormal,
               attack_count: 1,
             });
           }

@@ -126,6 +126,7 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
   const [history, setHistory] = useState<AttackAverageData[]>([]);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [isMonitoring, setIsMonitoring] = useState<boolean>(false);
+  const [engineBusy, setEngineBusy] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [stats, setStats] = useState<SnifferStats>({
     pps: 0,
@@ -311,6 +312,80 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
       clearInterval(heartbeatInterval);
     };
   }, [isMonitoring, token]);
+
+  // --- PILOTAGE RÉEL DU MOTEUR DE CAPTURE (SNIFFER) ---
+  const fetchEngineStatus = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(API_ENDPOINTS.ENGINE.STATUS, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsMonitoring(Boolean(data.sniffer_running));
+        setStats((prev) => ({
+          ...prev,
+          network_load: `${data.queue?.utilization_pct ?? 0}% file`,
+          checksum_errors: data.queue?.dropped_packets ?? 0,
+        }));
+      }
+    } catch (error) {
+      console.error("Impossible de lire l'état du moteur:", error);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (token) void fetchEngineStatus();
+  }, [token, fetchEngineStatus]);
+
+  const handleStartEngine = useCallback(async () => {
+    if (!token) {
+      toast.error("Session administrateur requise pour armer le moteur.");
+      return;
+    }
+    setEngineBusy(true);
+    try {
+      const res = await fetch(API_ENDPOINTS.ENGINE.SNIFFER_START, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        await fetchEngineStatus();
+        toast.success("Moteur de capture armé : le sniffer analyse le trafic.");
+      } else {
+        toast.error(data.detail || "Impossible d'armer le moteur de capture.");
+      }
+    } catch {
+      toast.error("Contrôleur de capture injoignable.");
+    } finally {
+      setEngineBusy(false);
+    }
+  }, [token, fetchEngineStatus]);
+
+  const handleStopEngine = useCallback(async () => {
+    if (!token) return;
+    setEngineBusy(true);
+    try {
+      const res = await fetch(API_ENDPOINTS.ENGINE.SNIFFER_STOP, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        await fetchEngineStatus();
+        toast.info("Moteur de capture désarmé.");
+      } else {
+        toast.error(
+          data.detail || "Impossible de désarmer le moteur de capture.",
+        );
+      }
+    } catch {
+      toast.error("Contrôleur de capture injoignable.");
+    } finally {
+      setEngineBusy(false);
+    }
+  }, [token, fetchEngineStatus]);
 
   // --- ACTIONNEUR AUTOMATISÉ IPS MÉMOÏSÉ ---
   const handleValidateBlock = useCallback(
@@ -590,10 +665,10 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
                   <div className="flex flex-col xl:col-span-1">
                     <EngineHealthPanel
                       stats={stats}
-                      health={94}
                       isMonitoring={isMonitoring}
-                      onStart={() => setIsMonitoring(true)}
-                      onStop={() => setIsMonitoring(false)}
+                      busy={engineBusy}
+                      onStart={handleStartEngine}
+                      onStop={handleStopEngine}
                     />
                   </div>
                 </div>
