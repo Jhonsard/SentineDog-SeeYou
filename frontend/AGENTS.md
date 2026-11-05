@@ -29,12 +29,13 @@ Ne jamais modifier `server/`, `shared/`, `patches/`, `vercel.json`, `pnpm-lock.y
 `dist/` ne s'édite jamais à la main (il est régénéré par `pnpm build`).
 Le frontend doit rester connecté au backend : ne toucher à aucun appel API, route, type partagé ni variable d'environnement.
 
-## Charte en bref
+## Thème en bref
 
-- 5 couleurs seulement : `#FFFFFF`, `#000000`, `#E0E0E0`, `#222526`, `#353A3E`.
-- Clair par défaut (fond blanc), sombre optionnel (fond noir), choix en `localStorage` (clé `theme`).
+- Thème shadcn neutre en `oklch`, défini dans `client/src/index.css` (`:root` / `.dark`) et exposé via `@theme inline`.
+- Clair par défaut, sombre optionnel, choix en `localStorage` (clé `theme`).
+- Les composants utilisent les variables CSS, jamais de couleur en dur.
 - Seule exception : coloration optionnelle des lignes de logs par sévérité (voir `contexte/charte-graphique.md`).
-- Détails : `SPEC.md` et `.claude/rules/`.
+- Détails : `SPEC.md`, `.claude/rules/palette-couleurs.md` et `contexte/charte-graphique.md`.
 
 ## Conventions
 

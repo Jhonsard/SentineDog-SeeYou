@@ -39,40 +39,40 @@ Version validée le 2026-11-03. Cette spécification remplace l'ancienne refonte
 
 ### 2.5 Application de la charte
 
-Toutes les pages (`Assets`, `BannedHosts`, `Login`, `LogsManagement`, `NetworkLogs`, `NodesManagement`, `NotFound`, `Settings`, `ThreatIntel`, `UserProfile`, `WelcomeAuth`) et les composants partagés (`SidebarLayout`, `components/dashboard/*`, `AlertFeed`, `TrafficAttackChart`, etc.).
+Toutes les pages (`Assets`, `Alerts`, `AssetsHub`, `Login`, `LogsHub`, `NetworkLogs`, `NodesManagement`, `NotFound`, `Reports`, `Settings`, `ThreatIntel`, `UserProfile`, `WelcomeAuth`) et les composants partagés (`SidebarLayout`, `components/dashboard/*`, `AlertFeed`, `BannedHosts`, `TrafficAttackChart`, etc.).
 
 ## 3. Charte graphique
 
 ### 3.1 Couleurs autorisées
 
-Seulement `#FFFFFF`, `#000000`, `#E0E0E0`, `#222526`, `#353A3E`. Seule exception : la coloration optionnelle des lignes de logs (section 5). Remplacer toute autre couleur existante (accents, dégradés, ombres colorées, classes Tailwind de palette).
+Le thème est un thème shadcn neutre défini en `oklch` dans `client/src/index.css` (`:root` / `.dark`) et exposé via `@theme inline`. Les composants utilisent les variables CSS, jamais de couleur en dur. Seule exception : la coloration optionnelle des lignes de logs (section 5).
 
-### 3.2 Mode clair (par défaut, fond `#FFFFFF`)
+### 3.2 Mode clair (par défaut)
 
-| Élément                                     | Couleur                                                                                 |
-| ------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Sidebar : fond                              | `#E0E0E0`                                                                               |
-| Sidebar : texte (normal)                    | `#222526`                                                                               |
-| Sidebar : élément sélectionné               | fond `#E0E0E0` inchangé + barre verticale de 3 px à gauche en `#222526` + texte en gras |
-| Cartes et tableaux : fond / bordure / texte | `#FFFFFF` / `#222526` / `#222526`                                                       |
-| Graphiques (traits, axes, légendes)         | `#222526`                                                                               |
+| Élément                                     | Token                                                     |
+| ------------------------------------------- | --------------------------------------------------------- |
+| Sidebar : fond / texte / bordure            | `--sidebar` / `--sidebar-foreground` / `--sidebar-border` |
+| Cartes et tableaux : fond / bordure / texte | `--card` / `--border` / `--card-foreground`               |
+| Graphiques (traits, axes, légendes)         | `--foreground` avec opacité                               |
+| Accent et focus                             | `--accent` / `--ring`                                     |
 
-### 3.3 Mode sombre (optionnel, fond `#000000`)
+### 3.3 Mode sombre (optionnel)
 
-| Élément                                     | Couleur                                                                                 |
-| ------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Sidebar : fond                              | `#353A3E`                                                                               |
-| Sidebar : texte (normal)                    | `#E0E0E0`                                                                               |
-| Sidebar : élément sélectionné               | fond `#353A3E` inchangé + barre verticale de 3 px à gauche en `#E0E0E0` + texte en gras |
-| Cartes et tableaux : fond / bordure / texte | `#000000` / `#E0E0E0` / `#E0E0E0`                                                       |
-| Graphiques (traits, axes, légendes)         | `#E0E0E0`                                                                               |
+| Élément                                     | Token                                                     |
+| ------------------------------------------- | --------------------------------------------------------- |
+| Sidebar : fond / texte / bordure            | `--sidebar` / `--sidebar-foreground` / `--sidebar-border` |
+| Cartes et tableaux : fond / bordure / texte | `--card` / `--border` / `--card-foreground`               |
+| Graphiques (traits, axes, légendes)         | `--foreground` avec opacité                               |
+| Accent et focus                             | `--accent` / `--ring`                                     |
+
+Les valeurs exactes des tokens sont dans `client/src/index.css`.
 
 ### 3.4 États et composants
 
-- Focus clavier : anneau de 2 px dans la couleur du texte, avec décalage.
-- Survol : soulignement ou bordure de 1 px dans la couleur du texte, sans nouvelle couleur.
-- Bouton principal : fond `#222526` + texte `#FFFFFF` (clair) ; fond `#E0E0E0` + texte `#000000` (sombre). Secondaire : contour seul. Désactivé : opacité 50 %.
-- Champs de formulaire : fond et bordure comme les cartes.
+- Focus clavier : anneau de 2 px dans `--foreground`, avec décalage.
+- Survol : `--accent` / `--accent-foreground` ou bordure `--border`.
+- Bouton principal : `--primary` + `--primary-foreground` ; secondaire : contour `--border` ; désactivé : opacité 50 %.
+- Champs de formulaire : fond `--background` ou `--card`, bordure `--input`.
 
 ### 3.5 Graphiques et statuts sans couleur supplémentaire
 

@@ -1,15 +1,20 @@
 # Charte graphique (résumé)
 
-Couleurs autorisées : `#FFFFFF`, `#000000`, `#E0E0E0`, `#222526`, `#353A3E`.
+Le thème est un thème shadcn neutre défini en `oklch` dans `client/src/index.css` (`:root` / `.dark`), exposé via `@theme inline`. Les composants utilisent les variables CSS, jamais de couleur en dur.
 
-| Élément                | Clair (fond #FFFFFF)      | Sombre (fond #000000)     |
-| ---------------------- | ------------------------- | ------------------------- |
-| Sidebar fond           | #E0E0E0                   | #353A3E                   |
-| Sidebar texte          | #222526                   | #E0E0E0                   |
-| Sélection sidebar      | barre 3 px #222526 + gras | barre 3 px #E0E0E0 + gras |
-| Cartes / tableaux fond | #FFFFFF                   | #000000                   |
-| Bordures               | #222526                   | #E0E0E0                   |
-| Textes et graphiques   | #222526                   | #E0E0E0                   |
+Le thème shadcn neutre remplace l'ancienne charte 5 couleurs (décision du 2026-11-05).
+
+| Élément        | Token                                                     |
+| -------------- | --------------------------------------------------------- |
+| Fond / texte   | `--background` / `--foreground`                           |
+| Cartes         | `--card` / `--card-foreground`                            |
+| Bordures       | `--border` / `--input`                                    |
+| Accent / focus | `--accent` / `--ring`                                     |
+| Sidebar        | `--sidebar` / `--sidebar-foreground` / `--sidebar-border` |
+| Graphiques     | `--chart-1` … `--chart-5`                                 |
+| Rayon          | `--radius`                                                |
+
+Les valeurs exactes sont dans `client/src/index.css`.
 
 ## Logs : teintes de sévérité (seule exception)
 

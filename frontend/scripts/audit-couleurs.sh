@@ -27,8 +27,11 @@ echo "== 4. Fonctions de couleur hors index.css (oklch, hsl, rgb) =="
 out=$(grep -rnE $INC '(oklch|hsla?|rgba?)\(' $SRC 2>/dev/null | grep -v 'index\.css' || true)
 if [ -n "$out" ]; then echo "$out"; fail=1; else echo "OK"; fi
 
-echo "== 5. oklch/hsl/rgb restant dans index.css =="
-out=$(grep -nE '(oklch|hsla?|rgba?)\(' client/src/index.css 2>/dev/null || true)
+echo "== 5. oklch/hsl/rgb hors déclarations de tokens dans index.css =="
+# Le thème shadcn est défini en oklch dans les blocs :root/.dark ; on autorise
+# ces déclarations de variables, mais pas les fonctions couleur ailleurs.
+out=$(grep -nE '(oklch|hsla?|rgba?)\(' client/src/index.css 2>/dev/null \
+  | grep -vE '^\s*[0-9]+:\s*--[a-z0-9-]+\s*:' || true)
 if [ -n "$out" ]; then echo "$out"; fail=1; else echo "OK"; fi
 
 echo

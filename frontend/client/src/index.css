@@ -87,107 +87,95 @@
 }
 
 /* ============================================================
-   Mode clair (par défaut) — fond #FFFFFF
+   Mode clair (par défaut) — thème shadcn neutre
    ============================================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #222526;
-  --card: #ffffff;
-  --card-foreground: #222526;
-  --popover: #ffffff;
-  --popover-foreground: #222526;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
 
-  --primary: #222526;
-  --primary-foreground: #ffffff;
-  --secondary: #e0e0e0;
-  --secondary-foreground: #222526;
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
 
-  --muted: #e0e0e0;
-  --muted-foreground: #222526;
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
 
-  --accent: #e0e0e0;
-  --accent-foreground: #222526;
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
 
-  --destructive: #222526;
-  --destructive-foreground: #ffffff;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
 
-  /* Bordures adoucies : 80 % de la couleur de texte, 20 % du fond.
-     Le contraste du texte reste inchangé pour l'accessibilité. */
-  --border: color-mix(in srgb, var(--foreground) 60%, var(--background));
-  --input: color-mix(in srgb, var(--foreground) 60%, var(--background));
-  --ring: #222526;
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
 
-  /* Graphiques : une seule couleur, les séries se distinguent par le motif */
-  --chart-1: #222526;
-  --chart-2: #222526;
-  --chart-3: #222526;
-  --chart-4: #222526;
-  --chart-5: #222526;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
 
-  --sidebar: #e0e0e0;
-  --sidebar-foreground: #222526;
-  --sidebar-primary: #222526;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e0e0e0;
-  --sidebar-accent-foreground: #222526;
-  --sidebar-border: color-mix(
-    in srgb,
-    var(--sidebar-foreground) 60%,
-    var(--sidebar)
-  );
-  --sidebar-ring: #222526;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 
-  --radius: 4px;
+  --radius: 0.625rem;
 }
 
 /* ============================================================
-   Mode sombre (optionnel) — fond #000000
+   Mode sombre (optionnel) — thème shadcn neutre
    ============================================================ */
 .dark {
-  --background: #000000;
-  --foreground: #e0e0e0;
-  --card: #000000;
-  --card-foreground: #e0e0e0;
-  --popover: #000000;
-  --popover-foreground: #e0e0e0;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
 
-  --primary: #e0e0e0;
-  --primary-foreground: #000000;
-  --secondary: #353a3e;
-  --secondary-foreground: #e0e0e0;
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
 
-  --muted: #353a3e;
-  --muted-foreground: #e0e0e0;
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
 
-  --accent: #353a3e;
-  --accent-foreground: #e0e0e0;
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
 
-  --destructive: #e0e0e0;
-  --destructive-foreground: #000000;
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
 
-  /* Bordures adoucies : 80 % de la couleur de texte, 20 % du fond. */
-  --border: color-mix(in srgb, var(--foreground) 60%, var(--background));
-  --input: color-mix(in srgb, var(--foreground) 60%, var(--background));
-  --ring: #e0e0e0;
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
 
-  --chart-1: #e0e0e0;
-  --chart-2: #e0e0e0;
-  --chart-3: #e0e0e0;
-  --chart-4: #e0e0e0;
-  --chart-5: #e0e0e0;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
 
-  --sidebar: #353a3e;
-  --sidebar-foreground: #e0e0e0;
-  --sidebar-primary: #e0e0e0;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #353a3e;
-  --sidebar-accent-foreground: #e0e0e0;
-  --sidebar-border: color-mix(
-    in srgb,
-    var(--sidebar-foreground) 60%,
-    var(--sidebar)
-  );
-  --sidebar-ring: #e0e0e0;
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {

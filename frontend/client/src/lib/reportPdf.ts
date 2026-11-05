@@ -4,15 +4,14 @@ import { severityLabel, type SeverityLevel } from "@/lib/logs";
 
 /**
  * Génération du PDF « Bilan SOC ».
- * La charte impose 5 couleurs : on les utilise en RGB.
- * Le bandeau de titre, les accents de section et les entêtes de tableau
- * reposent sur #222526 / #353A3E, le papier sur #FFFFFF, les séparateurs
- * sur #E0E0E0. Le texte est justifié pour les paragraphes.
+ * Le PDF reprend la palette claire du thème shadcn en RGB :
+ * premier plan sombre, texte secondaire gris, bordures claires,
+ * papier blanc. Le texte est justifié pour les paragraphes.
  */
-const INK: [number, number, number] = [34, 37, 38]; // #222526
-const SLATE: [number, number, number] = [53, 58, 62]; // #353A3E
-const MIST: [number, number, number] = [224, 224, 224]; // #E0E0E0
-const PAPER: [number, number, number] = [255, 255, 255]; // #FFFFFF
+const INK: [number, number, number] = [10, 10, 10];
+const SLATE: [number, number, number] = [115, 115, 115];
+const MIST: [number, number, number] = [229, 229, 229];
+const PAPER: [number, number, number] = [255, 255, 255];
 
 export interface PdfReport {
   id: string;
