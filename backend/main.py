@@ -65,6 +65,8 @@ async def app_lifespan(app: FastAPI):
         alembic_ini_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "alembic.ini")
         alembic_cfg = Config(alembic_ini_path)
         alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+        # Ne pas laisser Alembic remplacer les handlers de logging de l'app.
+        alembic_cfg.attributes["skip_logging_config"] = True
         command.upgrade(alembic_cfg, "head")
         logger.info("Schema de base de donnees synchronise via Alembic.")
     except Exception as e:

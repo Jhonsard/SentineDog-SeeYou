@@ -25,7 +25,11 @@ from app.db.models import Base
 
 config = context.config
 
-if config.config_file_name is not None:
+# En exécution embarquée (lifespan de l'app), fileConfig réinitialiserait
+# les handlers de logging déjà installés (dont le fichier rotatif).
+if config.config_file_name is not None and not config.attributes.get(
+    "skip_logging_config", False
+):
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
