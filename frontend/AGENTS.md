@@ -29,10 +29,10 @@ Ne jamais modifier `server/`, `shared/`, `patches/`, `vercel.json`, `pnpm-lock.y
 `dist/` ne s'édite jamais à la main (il est régénéré par `pnpm build`).
 Le frontend doit rester connecté au backend : ne toucher à aucun appel API, route, type partagé ni variable d'environnement.
 
-## Thème en bref
+## Thèmes en bref
 
-- Thème shadcn neutre en `oklch`, défini dans `client/src/index.css` (`:root` / `.dark`) et exposé via `@theme inline`.
-- Clair par défaut, sombre optionnel, choix en `localStorage` (clé `theme`).
+- 5 thèmes de couleurs en `oklch` : `.theme-1` à `.theme-5`, chacun avec sa déclinaison `.dark`. **`.theme-5` (Minimaliste) est le défaut.**
+- Sélecteur de thème dans **Paramètres** (`color-theme`), bascule clair/sombre dans la **topbar** (`theme`), les deux persistés.
 - Les composants utilisent les variables CSS, jamais de couleur en dur.
 - Seule exception : coloration optionnelle des lignes de logs par sévérité (voir `contexte/charte-graphique.md`).
 - Détails : `SPEC.md`, `.claude/rules/palette-couleurs.md` et `contexte/charte-graphique.md`.

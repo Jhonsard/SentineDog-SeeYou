@@ -35,6 +35,7 @@ import Settings from "../pages/Settings";
 import UserProfile from "../pages/UserProfile";
 import { useAuth } from "../contexts/AuthContext";
 import { useAI } from "../contexts/AIContext";
+import { ThemeToggle } from "./ThemeToggle";
 import { API_ENDPOINTS } from "../config";
 
 type Tab =
@@ -699,6 +700,7 @@ export function SidebarLayout({ initialTab }: SidebarLayoutProps) {
               />
               {wsConnected ? "Systèmes opérationnels" : "Flux interrompu"}
             </span>
+            <ThemeToggle />
             <button
               type="button"
               onClick={() => selectTab("profile")}

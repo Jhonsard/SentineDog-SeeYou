@@ -30,12 +30,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAI } from "../contexts/AIContext";
-import { useTheme } from "@/contexts/ThemeContext";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  COLOR_THEMES,
+  useTheme,
+  type ColorTheme,
+} from "@/contexts/ThemeContext";
 import { API_ENDPOINTS, API_BASE_URL } from "../config";
 
 export default function Settings() {
-  const { theme } = useTheme();
+  const { theme, colorTheme, setColorTheme } = useTheme();
   const [appSettings, setAppSettings] = useState({
     // General Settings
     siteName: "ULPGL Security Console",
@@ -310,18 +313,35 @@ export default function Settings() {
                 Choix du thème de l'interface
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    Thème actuel : {theme === "dark" ? "Sombre" : "Clair"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Le choix est mémorisé sur cet appareil.
-                  </p>
-                </div>
-                <ThemeToggle />
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="color-theme"
+                  className="text-xs text-muted-foreground"
+                >
+                  Thème de couleurs
+                </Label>
+                <select
+                  id="color-theme"
+                  value={colorTheme}
+                  onChange={(event) =>
+                    setColorTheme(event.target.value as ColorTheme)
+                  }
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-foreground focus:outline-none"
+                >
+                  {COLOR_THEMES.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
+                      {item.id === "theme-5" ? " [Défaut]" : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Mode actuel : {theme === "dark" ? "Sombre" : "Clair"}. Utilise
+                le bouton soleil/lune dans la barre supérieure pour changer de
+                mode.
+              </p>
             </CardContent>
           </Card>
 

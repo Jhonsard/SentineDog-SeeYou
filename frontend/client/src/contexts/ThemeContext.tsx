@@ -7,13 +7,29 @@ import React, {
   useState,
 } from "react";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark";
+
+export const COLOR_THEMES = [
+  { id: "theme-1", label: "Thème Neutre" },
+  { id: "theme-2", label: "Thème Bleu / Violet" },
+  { id: "theme-3", label: "Thème Rouge / Bordeaux" },
+  { id: "theme-4", label: "Thème Vert / Teal" },
+  { id: "theme-5", label: "Thème Minimaliste (Noir & Blanc)" },
+] as const;
+
+export type ColorTheme = (typeof COLOR_THEMES)[number]["id"];
+
+export const DEFAULT_COLOR_THEME: ColorTheme = "theme-5";
 
 const STORAGE_KEY = "theme";
+const COLOR_THEME_KEY = "color-theme";
+const COLOR_THEME_IDS: readonly string[] = COLOR_THEMES.map((item) => item.id);
 
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  colorTheme: ColorTheme;
+  setColorTheme: (theme: ColorTheme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -30,6 +46,18 @@ function getStoredTheme(): Theme | null {
   } catch {
     return null;
   }
+}
+
+function getStoredColorTheme(): ColorTheme {
+  try {
+    const stored = window.localStorage.getItem(COLOR_THEME_KEY);
+    if (stored && COLOR_THEME_IDS.includes(stored)) {
+      return stored as ColorTheme;
+    }
+  } catch {
+    // Stockage indisponible : thème par défaut.
+  }
+  return DEFAULT_COLOR_THEME;
 }
 
 function getSystemTheme(): Theme | null {
@@ -51,16 +79,31 @@ export function ThemeProvider({
   const [theme, setTheme] = useState<Theme>(
     () => getStoredTheme() ?? getSystemTheme() ?? defaultTheme,
   );
+  const [colorTheme, setColorTheme] = useState<ColorTheme>(getStoredColorTheme);
   const userChosenRef = useRef(false);
 
-  // Applique la classe sur <html>. Le script anti-flash de index.html a déjà
-  // posé la bonne classe avant le premier rendu : aucun flash possible.
+  // Applique la classe du thème de couleurs sur <html>.
+  useEffect(() => {
+    const root = document.documentElement;
+    COLOR_THEMES.forEach(({ id }) => root.classList.remove(id));
+    root.classList.add(colorTheme);
+  }, [colorTheme]);
+
+  // Applique le mode clair/sombre sans toucher au thème de couleurs.
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
-  // Persiste uniquement un choix explicite de l'utilisateur. Sans choix,
-  // le thème suit prefers-color-scheme et n'est pas figé en localStorage.
+  // Persiste le thème de couleurs.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(COLOR_THEME_KEY, colorTheme);
+    } catch {
+      // Stockage indisponible : le thème reste fonctionnel.
+    }
+  }, [colorTheme]);
+
+  // Persiste uniquement un choix explicite du mode clair/sombre.
   useEffect(() => {
     if (!userChosenRef.current) return;
     try {
@@ -70,7 +113,7 @@ export function ThemeProvider({
     }
   }, [theme]);
 
-  // Tant qu'aucun choix n'est stocké, suivre les changements du système.
+  // Tant qu'aucun choix de mode n'est stocké, suivre les changements du système.
   useEffect(() => {
     if (
       typeof window === "undefined" ||
@@ -93,8 +136,21 @@ export function ThemeProvider({
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   }, []);
 
+  const chooseColorTheme = useCallback((next: ColorTheme) => {
+    if (COLOR_THEME_IDS.includes(next)) {
+      setColorTheme(next);
+    }
+  }, []);
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        toggleTheme,
+        colorTheme,
+        setColorTheme: chooseColorTheme,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

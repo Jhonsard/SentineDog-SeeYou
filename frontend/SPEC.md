@@ -45,7 +45,7 @@ Toutes les pages (`Assets`, `Alerts`, `AssetsHub`, `Login`, `LogsHub`, `NetworkL
 
 ### 3.1 Couleurs autorisées
 
-Le thème est un thème shadcn neutre défini en `oklch` dans `client/src/index.css` (`:root` / `.dark`) et exposé via `@theme inline`. Les composants utilisent les variables CSS, jamais de couleur en dur. Seule exception : la coloration optionnelle des lignes de logs (section 5).
+Cinq thèmes de couleurs sont définis en `oklch` dans `client/src/index.css` : `.theme-1` (Neutre), `.theme-2` (Bleu / Violet), `.theme-3` (Rouge / Bordeaux), `.theme-4` (Vert / Teal), `.theme-5` (Minimaliste Noir & Blanc). **`.theme-5` est le thème par défaut.** Chaque thème possède sa déclinaison `.dark`. Les composants utilisent les variables CSS, jamais de couleur en dur. Seule exception : la coloration optionnelle des lignes de logs (section 5).
 
 ### 3.2 Mode clair (par défaut)
 
@@ -80,9 +80,11 @@ Les valeurs exactes des tokens sont dans `client/src/index.css`.
 - Grilles : couleur du texte à 20 % d'opacité.
 - Statuts (`StatusRing`, `KpiCard`, `EngineHealthPanel`, `AlertFeed`) : libellé + icône, jamais la couleur seule.
 
-### 3.6 Thème
+### 3.6 Thèmes
 
-- Choix en `localStorage` (clé `theme`), restauré au chargement ; sans choix, `prefers-color-scheme`.
+- Thème de couleurs : sélecteur dans **Paramètres**, persisté dans `localStorage` (`color-theme`), `.theme-5` par défaut.
+- Mode clair/sombre : bascule dans la **topbar**, persisté dans `localStorage` (`theme`) ; sans choix, `prefers-color-scheme`.
+- Les deux classes (`theme-X` et `dark`) sont appliquées sur `<html>`.
 - Adapter le `ThemeContext.tsx` existant (pas de second contexte) et ajouter un `ThemeToggle` accessible.
 - Classe `dark` appliquée avant le premier rendu (script dans `client/index.html`) pour éviter le flash.
 - Tailwind 4 : `@custom-variant dark (&:where(.dark, .dark *));` et variables CSS dans `client/src/index.css` (`@theme`, `:root`, `.dark`) ; variables shadcn (`--background`, `--card`, `--sidebar`...) pointées vers ces valeurs.

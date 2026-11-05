@@ -1,8 +1,6 @@
 # Charte graphique (résumé)
 
-Le thème est un thème shadcn neutre défini en `oklch` dans `client/src/index.css` (`:root` / `.dark`), exposé via `@theme inline`. Les composants utilisent les variables CSS, jamais de couleur en dur.
-
-Le thème shadcn neutre remplace l'ancienne charte 5 couleurs (décision du 2026-11-05).
+Cinq thèmes de couleurs sont définis en `oklch` dans `client/src/index.css` : `.theme-1` (Neutre), `.theme-2` (Bleu / Violet), `.theme-3` (Rouge / Bordeaux), `.theme-4` (Vert / Teal) et `.theme-5` (Minimaliste Noir & Blanc). Chacun possède sa déclinaison `.dark`. **`.theme-5` est le thème par défaut.** Les composants utilisent les variables CSS, jamais de couleur en dur.
 
 | Élément        | Token                                                     |
 | -------------- | --------------------------------------------------------- |

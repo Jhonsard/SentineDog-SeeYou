@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr" class="theme-5">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -15,18 +15,35 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <!-- Anti-flash : applique le thème avant le premier rendu -->
+    <!-- Anti-flash : applique le thème de couleurs et le mode avant le premier rendu. -->
     <script>
       (function () {
         try {
+          var validThemes = [
+            "theme-1",
+            "theme-2",
+            "theme-3",
+            "theme-4",
+            "theme-5",
+          ];
+          var storedColor = localStorage.getItem("color-theme");
+          var colorTheme =
+            validThemes.indexOf(storedColor) !== -1 ? storedColor : "theme-5";
+          var root = document.documentElement;
+
+          validThemes.forEach(function (name) {
+            root.classList.remove(name);
+          });
+          root.classList.add(colorTheme);
+
           var stored = localStorage.getItem("theme");
           var dark =
             stored === "dark" ||
             (stored !== "light" &&
               window.matchMedia("(prefers-color-scheme: dark)").matches);
-          document.documentElement.classList.toggle("dark", dark);
+          root.classList.toggle("dark", dark);
         } catch (e) {
-          /* Stockage indisponible : on laisse le thème clair par défaut. */
+          /* Stockage indisponible : le HTML garde theme-5 et le mode clair. */
         }
       })();
     </script>
